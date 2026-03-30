@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import restaurante.api.orden.DatosAgregarPlatillo;
 import restaurante.api.orden.OrdenService;
 import restaurante.api.ordenDetalle.DatosRegistroOrdenDetalle;
+import restaurante.api.ordenDetalle.DatosSincronizarComanda;
 import restaurante.api.ordenDetalle.OrdenDetalle;
 import restaurante.api.ordenDetalle.OrdenDetalleRepository;
 
@@ -20,7 +21,7 @@ public class OrdenDetalleController {
     OrdenService ordenService;
 
     @PostMapping
-    public void regristrar(@RequestBody @Valid DatosAgregarPlatillo datos){
-        ordenService.agregarPlatillo(datos);
+    public void regristrar(@RequestBody @Valid DatosSincronizarComanda datos){
+        ordenService.enviarOrden(datos);
     }
 }

@@ -32,17 +32,8 @@ public class OrdenDetalle {
     @JoinColumn(name = "id_producto")
     private Producto producto;
 
-//    public OrdenDetalle(DatosRegistroOrdenDetalle datosRegistroOrdenDetalle) {
-//        this.id_detalle = null;
-//        this.cantidad = datosRegistroOrdenDetalle.cantidad();
-//        this.precio_unitario = datosRegistroOrdenDetalle.precio_unitario();
-//        this.subtotal = datosRegistroOrdenDetalle.subtotal();
-//        this.comentarios = datosRegistroOrdenDetalle.comentarios();
-//        this.orden = new Orden(datosRegistroOrdenDetalle.id_orden());
-//        this.producto = new Producto(datosRegistroOrdenDetalle.id_producto());
-//    }
 
-    public OrdenDetalle(DatosAgregarPlatillo datos,Producto producto, Orden orden) {
+    public OrdenDetalle(DatosPlatilloLote datos,Producto producto, Orden orden) {
         this.id_detalle = null;
         this.cantidad = datos.cantidad();
         this.precio_unitario = producto.getPrecio_comida();
@@ -50,5 +41,11 @@ public class OrdenDetalle {
         this.comentarios = datos.comentarios();
         this.orden = orden;
         this.producto = producto;
+    }
+
+    public void actualizarPlatillo(DatosPlatilloLote datos) {
+        this.cantidad = datos.cantidad();
+        this.comentarios = datos.comentarios();
+        this.subtotal = this.precio_unitario.multiply(BigDecimal.valueOf(this.cantidad));
     }
 }

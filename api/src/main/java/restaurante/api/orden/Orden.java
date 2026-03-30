@@ -7,10 +7,12 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import restaurante.api.mesa.Mesa;
+import restaurante.api.ordenDetalle.OrdenDetalle;
 import restaurante.api.usuario.Usuario;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Getter
@@ -52,11 +54,12 @@ public class Orden {
         this.tipo = tipo;
     }
 
-    public void actualizarTotal(BigDecimal subtotalDetalle) {
-        if (this.total == null) {
-            this.total = BigDecimal.ZERO;
+    public void recalcularTotal(List<OrdenDetalle> detalles) {
+        this.total = BigDecimal.ZERO;
+
+        for (OrdenDetalle platillo : detalles) {
+            this.total = this.total.add(platillo.getSubtotal());
         }
-        this.total = this.total.add(subtotalDetalle);
     }
 
 

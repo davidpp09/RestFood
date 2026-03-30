@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 
 public record DatosRegistroOrdenDetalle(
 
-
         @Positive Integer cantidad,
         @Positive BigDecimal precio_unitario,
         @Positive BigDecimal subtotal,

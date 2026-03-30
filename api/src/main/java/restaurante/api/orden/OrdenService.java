@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import restaurante.api.mesa.Estado;
 import restaurante.api.mesa.MesaRepository;
+import restaurante.api.ordenDetalle.DatosPlatilloLote;
+import restaurante.api.ordenDetalle.DatosSincronizarComanda;
 import restaurante.api.ordenDetalle.OrdenDetalle;
 import restaurante.api.ordenDetalle.OrdenDetalleRepository;
 import restaurante.api.producto.ProductoRepository;
@@ -50,15 +52,23 @@ public class OrdenService {
     }
 
     @Transactional
-    public void agregarPlatillo(DatosAgregarPlatillo datos){
+    public void enviarOrden(DatosSincronizarComanda datos){
         var orden = ordenRepository.findByIdConBloqueo(datos.id_orden()).orElseThrow();
-        if (!orden.getUsuario().getId_usuarios().equals( datos.id_usuario())) {
+        if (!orden.getUsuario().getId_usuarios().equals(datos.id_usuario())) {
             throw new RuntimeException("Solo un mesero puede tener la orden de la mesa");
         }
-        var producto = productoRepository.getReferenceById(datos.id_producto());
-        OrdenDetalle detalle = new OrdenDetalle(datos, producto, orden);
-        ordenDetalleRepository.save(detalle);
-        orden.actualizarTotal(detalle.getSubtotal());
+        for (DatosPlatilloLote platillo : datos.platillos()) {
+            if (platillo.id_detalle() == null){
+                var producto = productoRepository.getReferenceById(platillo.id_producto());
+                OrdenDetalle detalle = new OrdenDetalle(platillo, producto, orden);
+                ordenDetalleRepository.save(detalle);
+            } else {
+                var modificado = ordenDetalleRepository.getReferenceById(platillo.id_detalle());
+                modificado.actualizarPlatillo(platillo);
+            }
+        }
+        var platosActualizados = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes());
+        orden.recalcularTotal(platosActualizados);
     }
 
 }
