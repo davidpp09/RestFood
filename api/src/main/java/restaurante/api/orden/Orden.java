@@ -37,6 +37,8 @@ public class Orden {
     @Enumerated(EnumType.STRING)
     private Tipo tipo;
     private LocalDateTime fecha_cierre;
+    @Enumerated(EnumType.STRING)
+    private Servicio servicio;
 
 
 
@@ -44,7 +46,7 @@ public class Orden {
         this.id_ordenes = aLong;
     }
 
-    public Orden(Mesa mesa, Usuario usuario, Tipo tipo) {
+    public Orden(Mesa mesa, Usuario usuario, Tipo tipo,Servicio servicio) {
         this.id_ordenes = null;
         this.fecha_apertura = LocalDateTime.now();
         this.estatus = Estatus.PREPARANDO;
@@ -53,6 +55,7 @@ public class Orden {
         this.mesa = mesa;
         this.tipo = tipo;
         this.fecha_cierre = null;
+        this.servicio =servicio;
     }
 
     public void recalcularTotal(List<OrdenDetalle> detalles) {

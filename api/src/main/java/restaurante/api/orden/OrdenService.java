@@ -40,7 +40,7 @@ public class OrdenService {
         }
 
         mesa.abrirMesa();
-        ordenRepository.save(new Orden(mesa,usuario,datos.tipo()));
+        ordenRepository.save(new Orden(mesa,usuario,datos.tipo(),datos.servicio()));
     }
 
     public Page<DatosListaOrden> listar(Pageable pagina){

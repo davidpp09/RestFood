@@ -8,7 +8,9 @@ public record DatosAbrirOrden(
         @NotNull
         Long id_usuario,
         @NotNull
-        Tipo tipo
+        Tipo tipo,
+        @NotNull
+        Servicio servicio
 
 ) {
 }
