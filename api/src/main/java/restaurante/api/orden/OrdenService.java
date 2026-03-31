@@ -42,7 +42,7 @@ public class OrdenService {
 
 
     @Transactional
-    public void abrirCuenta(DatosAbrirOrden datos){
+    public Long abrirCuenta(DatosAbrirOrden datos){
         var usuario = usuarioRepository.getReferenceById(datos.id_usuario());
         var mesa = mesaRepository.getReferenceById(datos.id_mesa());
         if (mesa.getEstado() == Estado.OCUPADA) {
@@ -50,7 +50,8 @@ public class OrdenService {
         }
 
         mesa.abrirMesa();
-        ordenRepository.save(new Orden(mesa,usuario,datos.tipo(),datos.servicio()));
+        Orden ordenGuardada = ordenRepository.save(new Orden(mesa, usuario, datos.tipo(), datos.servicio()));
+        return ordenGuardada.getId_ordenes();
     }
 
     public Page<DatosListaOrden> listar(Pageable pagina){
@@ -105,12 +106,18 @@ public class OrdenService {
         return ordenes.stream().map(Orden::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
     @Transactional
-    public BigDecimal totalDesayuno(List<Orden> ordenes){
-        return ordenes.stream().filter(o -> o.getServicio().equals(Servicio.DESAYUNO)).map(Orden::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+    public BigDecimal totalDesayuno(List<Orden> ordenes) {
+        return ordenes.stream()
+                .filter(o -> Servicio.DESAYUNO.equals(o.getServicio()))
+                .map(Orden::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
     @Transactional
-    public BigDecimal totalComida(List<Orden> ordenes){
-        return ordenes.stream().filter(o -> o.getServicio().equals(Servicio.COMIDA)).map(Orden::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+    public BigDecimal totalComida(List<Orden> ordenes) {
+        return ordenes.stream()
+                .filter(o -> Servicio.COMIDA.equals(o.getServicio()))
+                .map(Orden::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
     @Transactional
     public Long pedidosParaLlevar(List<Orden> ordenes){
