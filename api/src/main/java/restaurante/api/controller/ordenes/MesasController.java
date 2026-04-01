@@ -4,10 +4,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import restaurante.api.mesa.DatosRegistroMesa;
 import restaurante.api.mesa.DatosRespuestaMesa;
@@ -15,6 +12,7 @@ import restaurante.api.mesa.Mesa;
 import restaurante.api.mesa.MesaRepository;
 
 import java.net.URI;
+import java.util.List;
 
 @RequestMapping("/mesas")
 @RestController
@@ -34,5 +32,13 @@ public class MesasController {
         );
         URI url = uriComponentsBuilder.path("/mesas/{id}").buildAndExpand(mesa.getId_mesas()).toUri();
         return ResponseEntity.created(url).body(datosRespuesta);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<DatosRespuestaMesa>> listar() {
+        var mesas = repository.findAll().stream()
+                .map(m -> new DatosRespuestaMesa(m.getId_mesas(), m.getNumero(), m.getEstado().toString()))
+                .toList();
+        return ResponseEntity.ok(mesas);
     }
 }

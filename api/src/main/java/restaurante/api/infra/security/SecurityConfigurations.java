@@ -26,8 +26,17 @@ public class SecurityConfigurations {
         return http.csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> {
+                    // 1. Lo que es público para todos 🔓
                     req.requestMatchers(HttpMethod.POST, "/login").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/usuarios").permitAll();
+
+                    // 2. Reglas por Rol (Sala VIP) 🛡️
+                    // Solo ADMIN y DEV pueden entrar a cualquier ruta que empiece con /admin
+                    req.requestMatchers("/admin/**").hasAnyRole("ADMIN", "DEV");
+                    req.requestMatchers("/usuarios/**").hasAnyRole("ADMIN", "DEV", "CAJERO");
+                    req.requestMatchers(HttpMethod.GET, "/productos/**").authenticated();
+                    req.requestMatchers("/productos/**").hasAnyRole("ADMIN", "DEV");
+                    // 3. Todo lo demás (Solo con estar logueado basta) 🔑
                     req.anyRequest().authenticated();
                 })
                 // 2. ¡ESTA ES LA LÍNEA MÁGICA!

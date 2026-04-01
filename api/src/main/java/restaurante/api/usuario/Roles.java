@@ -6,5 +6,6 @@ public enum Roles {
     MESERO,
     COCINA,
     CAJERO,
-    DEV
+    DEV,
+    REPARTIDOR
 }
