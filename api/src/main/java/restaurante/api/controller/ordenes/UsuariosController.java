@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -20,10 +21,23 @@ public class UsuariosController {
     @Autowired
     private UsuarioRepository repository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder; // 1. Inyectamos la herramienta de cifrado
+
     @PostMapping
     @Transactional
     public ResponseEntity<DatosRespuestaUsuario> registrar(@RequestBody @Valid DatosRegistroUsuario datosRegistroUsuario, UriComponentsBuilder uriComponentsBuilder) {
-        Usuario usuario = repository.save(new Usuario(datosRegistroUsuario));
+
+        // 2. Creamos la instancia de Usuario
+        Usuario usuario = new Usuario(datosRegistroUsuario);
+
+        // 3. Encriptamos la contraseña que viene en el DTO y se la asignamos al usuario
+        String passwordEncriptada = passwordEncoder.encode(datosRegistroUsuario.contrasena());
+        usuario.setContrasena(passwordEncriptada);
+
+        // 4. Guardamos al usuario ya protegido
+        repository.save(usuario);
+
         DatosRespuestaUsuario datosRespuesta = new DatosRespuestaUsuario(
                 usuario.getId_usuarios(),
                 usuario.getNombre(),
@@ -31,6 +45,7 @@ public class UsuariosController {
                 usuario.getEmail(),
                 usuario.getEstatus()
         );
+
         URI url = uriComponentsBuilder.path("/usuarios/{id}").buildAndExpand(usuario.getId_usuarios()).toUri();
         return ResponseEntity.created(url).body(datosRespuesta);
     }
