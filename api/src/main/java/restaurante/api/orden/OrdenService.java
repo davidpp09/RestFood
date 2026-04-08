@@ -18,6 +18,7 @@ import restaurante.api.usuario.UsuarioRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +40,7 @@ public class OrdenService {
     OrdenDetalleRepository ordenDetalleRepository;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+
 
     private boolean esSuperUsuario(Roles rol) {
         return rol.equals(Roles.DEV) || rol.equals(Roles.ADMIN);
@@ -163,8 +165,8 @@ public class OrdenService {
                 ventaEmpleados(ventasAgrupadas),
                 totalDesayuno(ordenes),
                 totalComida(ordenes),
-                pedidosLoza(ordenes),
-                pedidosParaLlevar(ordenes),
+                platillosLoza(inicio, fin),
+                platillosParaLlevar(inicio, fin),
                 totalGeneral(ordenes)
         );
     }
@@ -182,12 +184,12 @@ public class OrdenService {
         return ordenes.stream().filter(o -> Servicio.COMIDA.equals(o.getServicio())).map(Orden::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public Long pedidosParaLlevar(List<Orden> ordenes) {
-        return ordenes.stream().filter(o -> o.getTipo().equals(Tipo.LLEVAR)).count();
+    public Long platillosParaLlevar(LocalDateTime inicio, LocalDateTime fin) {
+        return ordenDetalleRepository.contarPlatillosPorTipo(inicio, fin, Tipo.LLEVAR);
     }
 
-    public Long pedidosLoza(List<Orden> ordenes) {
-        return ordenes.stream().filter(o -> o.getTipo().equals(Tipo.LOZA)).count();
+    public Long platillosLoza(LocalDateTime inicio, LocalDateTime fin) {
+        return ordenDetalleRepository.contarPlatillosPorTipo(inicio, fin, Tipo.LOZA);
     }
 
     public List<DatosVentaEmpleado> ventaEmpleados(Map<String, List<Orden>> ventasPorNombre) {
