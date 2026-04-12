@@ -83,10 +83,34 @@ public class Orden {
         }
     }
 
-    public void finalizar() {
+    public void finalizar(List<Orden> otrasOrdenes) {
+        if (this.estatus == Estatus.PAGADA) {
+            throw new restaurante.api.infra.errores.ValidacionException("Esta orden ya fue pagada anteriormente");
+        }
+        if (this.mesa != null) {
+            if (this.mesa.getEstado() == restaurante.api.mesa.Estado.LIBRE) {
+                throw new restaurante.api.infra.errores.ValidacionException("La mesa ya fue liberada");
+            }
+            if (otrasOrdenes != null && !otrasOrdenes.isEmpty()) {
+                boolean hayOrdenMasNueva = otrasOrdenes.stream()
+                        .anyMatch(o -> o.getFecha_apertura().isAfter(this.fecha_apertura));
+
+                if (hayOrdenMasNueva) {
+                    throw new restaurante.api.infra.errores.ValidacionException(
+                            "No puedes cerrar esta orden porque hay una orden más nueva activa en la mesa"
+                    );
+                }
+            }
+        }
         this.estatus = Estatus.PAGADA;
         this.fechaCierre = LocalDateTime.now();
     }
 
+    public void marcarComoServido() {
+        if (this.estatus != Estatus.PREPARANDO) {
+            throw new restaurante.api.infra.errores.ValidacionException("Solo se pueden marcar como servidas las órdenes en preparación.");
+        }
+        this.estatus = Estatus.SERVIDO;
+    }
 
 }

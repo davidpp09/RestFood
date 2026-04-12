@@ -35,11 +35,13 @@ public class Mesa {
     }
 
     public void abrirMesa() {
+        if (this.estado == Estado.OCUPADA) {
+            throw new restaurante.api.infra.errores.ValidacionException("La mesa ya está en uso, no se puede abrir otra cuenta.");
+        }
         this.estado = Estado.OCUPADA;
     }
 
     public void liberar() {
-        
         this.estado = Estado.LIBRE;
     }
 }

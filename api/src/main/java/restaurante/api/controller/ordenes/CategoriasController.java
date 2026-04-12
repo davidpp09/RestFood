@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.util.UriComponentsBuilder;
 import restaurante.api.categoria.Categoria;
 import restaurante.api.categoria.CategoriaRepository;
@@ -18,6 +19,7 @@ import java.net.URI;
 
 @RequestMapping("/categorias")
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
 public class CategoriasController {
 
     @Autowired

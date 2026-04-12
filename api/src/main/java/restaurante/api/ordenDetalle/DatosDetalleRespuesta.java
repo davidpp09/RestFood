@@ -24,7 +24,8 @@ public record DatosDetalleRespuesta(
         Long id_orden,
         @NotNull
         @Positive
-        Long id_producto
+        Long id_producto,
+        String nombre_producto
 ) {
     public DatosDetalleRespuesta(OrdenDetalle ordenDetalle) {
         this(
@@ -34,7 +35,8 @@ public record DatosDetalleRespuesta(
                 ordenDetalle.getSubtotal(),
                 ordenDetalle.getComentarios(),
                 ordenDetalle.getOrden().getId_ordenes(),
-                ordenDetalle.getProducto().getId_productos()
+                ordenDetalle.getProducto().getId_productos(),
+                ordenDetalle.getProducto().getNombre()
         );
 
     }

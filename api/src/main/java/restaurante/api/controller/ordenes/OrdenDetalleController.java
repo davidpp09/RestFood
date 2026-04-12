@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.util.UriComponentsBuilder;
 import restaurante.api.orden.DatosRespuestaOrden;
 import restaurante.api.orden.OrdenService;
@@ -17,6 +18,7 @@ import java.net.URI;
 
 @RequestMapping("/ordendetalles")
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'MESERO', 'REPARTIDOR')")
 public class OrdenDetalleController {
 
     @Autowired

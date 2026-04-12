@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import restaurante.api.admin.DatosCorteDia;
@@ -14,6 +15,7 @@ import restaurante.api.mesa.MesaRepository;
 import restaurante.api.ordenDetalle.*;
 import restaurante.api.producto.ProductoRepository;
 import restaurante.api.usuario.Roles;
+import restaurante.api.usuario.Usuario;
 import restaurante.api.usuario.UsuarioRepository;
 
 import java.math.BigDecimal;
@@ -56,9 +58,6 @@ public class OrdenService {
                 throw new ValidacionException("Debes indicar el número de mesa.");
             }
             var mesa = mesaRepository.getReferenceById(datos.id_mesa());
-            if (mesa.getEstado() == Estado.OCUPADA) {
-                throw new ValidacionException("La mesa ya está en uso, no se puede abrir otra cuenta.");
-            }
             mesa.abrirMesa();
             Orden ordenGuardada = ordenRepository.save(new Orden(mesa, usuario, datos.tipo(), datos.servicio()));
 
@@ -112,8 +111,16 @@ public class OrdenService {
                 } else {
                     var modificado = ordenDetalleRepository.getReferenceById(platillo.id_detalle());
                     var producto = productoRepository.getReferenceById(platillo.id_producto());
-                    modificado.actualizarPlatillo(platillo);
-                    ticketCocina.add(new DatosPlatilloTicket("🟡 MODIFICADO", producto.getNombre(), platillo.cantidad(), platillo.comentarios()));
+                    
+                    // Solo registrar como modificado si realmente cambió la cantidad o los comentarios
+                    boolean cambioCantidad = !modificado.getCantidad().equals(platillo.cantidad());
+                    boolean cambioComentarios = (modificado.getComentarios() == null && platillo.comentarios() != null && !platillo.comentarios().isEmpty()) ||
+                            (modificado.getComentarios() != null && !modificado.getComentarios().equals(platillo.comentarios()));
+
+                    if (cambioCantidad || cambioComentarios) {
+                        modificado.actualizarPlatillo(platillo);
+                        ticketCocina.add(new DatosPlatilloTicket("🟡 MODIFICADO", producto.getNombre(), platillo.cantidad(), platillo.comentarios()));
+                    }
                 }
             }
         }
@@ -139,44 +146,26 @@ public class OrdenService {
         var orden = ordenRepository.findById(id)
                 .orElseThrow(() -> new ValidacionException("Orden no encontrada"));
 
-        // ✅ VALIDACIÓN 1: No se puede cerrar una orden ya pagada
-        if (orden.getEstatus().equals(Estatus.PAGADA)) {
-            throw new ValidacionException("Esta orden ya fue pagada anteriormente");
+        // ✅ VALIDACIÓN: Solo el mesero que abrió la orden o un ADMIN/DEV pueden cerrarla
+        var usuarioAutenticado = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!esSuperUsuario(usuarioAutenticado.getRol()) && !orden.getUsuario().getId_usuarios().equals(usuarioAutenticado.getId_usuarios())) {
+            throw new ValidacionException("No tienes permiso para cerrar esta orden porque no la abriste tú.");
         }
 
-        // ✅ VALIDACIÓN 2: Si tiene mesa, verificar que la mesa esté ocupada
+        // ✅ VALIDACIÓN 1: No se puede cerrar una orden ya pagada
+        List<Orden> otrasOrdenes = new ArrayList<>();
         if (orden.getMesa() != null) {
-            if (orden.getMesa().getEstado().equals(Estado.LIBRE)) {
-                throw new ValidacionException("La mesa ya fue liberada");
-            }
-
-            // ✅ VALIDACIÓN 3 CORREGIDA: Verificar si hay una orden MÁS NUEVA en la mesa
             var ordenesActivas = ordenRepository.findByMesaAndEstatus(
                     orden.getMesa(),
                     Estatus.PREPARANDO
             );
-
-            // Filtrar órdenes que NO sean la que estamos cerrando
-            var otrasOrdenes = ordenesActivas.stream()
+            otrasOrdenes = ordenesActivas.stream()
                     .filter(o -> !o.getId_ordenes().equals(id))
                     .toList();
-
-            // Si hay otras órdenes preparando en esta mesa
-            if (!otrasOrdenes.isEmpty()) {
-                // Verificar si alguna de esas órdenes es MÁS NUEVA que la que queremos cerrar
-                boolean hayOrdenMasNueva = otrasOrdenes.stream()
-                        .anyMatch(o -> o.getFecha_apertura().isAfter(orden.getFecha_apertura()));
-
-                if (hayOrdenMasNueva) {
-                    throw new ValidacionException(
-                            "No puedes cerrar esta orden porque hay una orden más nueva activa en la mesa"
-                    );
-                }
-            }
         }
 
-        // ✅ Si pasa todas las validaciones, procede a cerrar
-        orden.finalizar();
+        // ✅ Llama al método de dominio que tiene las reglas de negocio
+        orden.finalizar(otrasOrdenes);
 
         // ✅ Si tiene mesa, liberarla y avisar por WebSocket
         if (orden.getMesa() != null) {
@@ -218,10 +207,35 @@ public class OrdenService {
         return ticket;
     }
 
-    public Long obtenerOrdenActiva(Long id_mesa) {
-        return ordenRepository.findActivaByMesa(id_mesa)
-                .map(Orden::getId_ordenes)
+    public DatosRespuestaOrden obtenerOrdenActiva(Long id_mesa) {
+        var orden = ordenRepository.findActivaByMesa(id_mesa)
                 .orElseThrow(() -> new ValidacionException("No hay orden activa para esta mesa"));
+
+        var platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes());
+        List<DatosDetalleRespuesta> platillosMapeados = platillos.stream()
+                .map(DatosDetalleRespuesta::new)
+                .toList();
+
+        return new DatosRespuestaOrden(orden.getId_ordenes(), orden.getTotal(), platillosMapeados);
+    }
+
+    public List<DatosRespuestaOrden> listarOrdenesCocina() {
+        return ordenRepository.findByEstatus(Estatus.PREPARANDO).stream().map(orden -> {
+            var platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes());
+            List<DatosDetalleRespuesta> platillosMapeados = platillos.stream()
+                    .map(DatosDetalleRespuesta::new)
+                    .toList();
+            return new DatosRespuestaOrden(orden.getId_ordenes(), orden.getTotal(), platillosMapeados);
+        }).toList();
+    }
+
+    @Transactional
+    public void marcarOrdenServida(Long idOrden) {
+        var orden = ordenRepository.findById(idOrden)
+                .orElseThrow(() -> new ValidacionException("Orden no encontrada"));
+        orden.marcarComoServido();
+        // Opcional: avisar por websocket
+        messagingTemplate.convertAndSend("/topic/cocina", "Orden " + idOrden + " está lista");
     }
 
     @Transactional

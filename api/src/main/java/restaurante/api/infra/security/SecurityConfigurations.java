@@ -13,11 +13,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfigurations {
 
     @Autowired
@@ -32,27 +34,6 @@ public class SecurityConfigurations {
                 .authorizeHttpRequests(req -> {
                     req.requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/login").permitAll();
-
-                    // ✅ Solo ADMIN y DEV pueden registrar usuarios
-                    req.requestMatchers(HttpMethod.POST, "/usuarios").hasAnyRole("ADMIN", "DEV");
-                    req.requestMatchers("/usuarios/**").hasAnyRole("ADMIN", "DEV", "CAJERO");
-
-                    req.requestMatchers("/admin/**").hasAnyRole("ADMIN", "DEV");
-                    req.requestMatchers("/mesas/**").hasAnyRole("ADMIN", "DEV", "MESERO");
-
-                    req.requestMatchers(HttpMethod.GET, "/productos/**").hasAnyRole("ADMIN", "DEV", "MESERO");
-                    req.requestMatchers("/productos/**").hasAnyRole("ADMIN", "DEV");
-                    req.requestMatchers("/categorias/**").hasAnyRole("ADMIN", "DEV");
-
-                    // ✅ Todos los roles operativos pueden abrir/cerrar ordenes
-                    req.requestMatchers(HttpMethod.POST, "/ordenes").hasAnyRole("ADMIN", "DEV", "MESERO", "REPARTIDOR");
-                    req.requestMatchers(HttpMethod.PUT, "/ordenes/**").hasAnyRole("ADMIN", "DEV", "CAJERO");
-                    req.requestMatchers(HttpMethod.GET, "/ordenes/activa/**").hasAnyRole("ADMIN", "DEV", "CAJERO", "MESERO");
-                    req.requestMatchers(HttpMethod.GET, "/ordenes/**").hasAnyRole("ADMIN", "DEV", "CAJERO");
-
-                    // ✅ Enviar platillos a cocina
-                    req.requestMatchers(HttpMethod.POST, "/ordendetalles").hasAnyRole("ADMIN", "DEV", "MESERO", "REPARTIDOR");
-
                     req.requestMatchers("/ws-restfood/**").permitAll();
                     req.anyRequest().authenticated();
                 })

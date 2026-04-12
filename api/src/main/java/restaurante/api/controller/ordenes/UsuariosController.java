@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.util.UriComponentsBuilder;
 import restaurante.api.usuario.*;
 
@@ -16,6 +17,7 @@ import java.net.URI;
 
 @RequestMapping("/usuarios")
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'CAJERO')")
 public class UsuariosController {
 
     @Autowired
@@ -26,6 +28,7 @@ public class UsuariosController {
 
     @PostMapping
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<DatosRespuestaUsuario> registrar(@RequestBody @Valid DatosRegistroUsuario datosRegistroUsuario, UriComponentsBuilder uriComponentsBuilder) {
 
         // 2. Creamos la instancia de Usuario

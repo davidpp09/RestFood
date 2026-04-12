@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.util.UriComponentsBuilder;
 import restaurante.api.producto.DatosRegistroProducto;
 import restaurante.api.producto.DatosRespuestaProducto;
@@ -23,6 +24,7 @@ public class ProductosController {
 
     @PostMapping
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<DatosRespuestaProducto> registrar(@RequestBody @Valid DatosRegistroProducto datosRegistroProducto, UriComponentsBuilder uriComponentsBuilder) {
         Producto producto = repository.save(new Producto(datosRegistroProducto));
         DatosRespuestaProducto datosRespuesta = new DatosRespuestaProducto(producto);
@@ -31,6 +33,7 @@ public class ProductosController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'MESERO')")
     public ResponseEntity<List<DatosRespuestaProducto>> listar() {
         var lista = repository.findAllWithCategoria().stream().map(DatosRespuestaProducto::new).toList();
         return ResponseEntity.ok(lista);
