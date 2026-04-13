@@ -23,8 +23,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -103,34 +105,31 @@ public class OrdenService {
         
         // 2. Obtener los IDs que vienen en el payload (los que aún existen en el carrito)
         List<Long> idsRecibidos = datos.platillos().stream()
-                .map(restaurante.api.ordenDetalle.DatosPlatilloLote::id_detalle)
-                .filter(java.util.Objects::nonNull)
+                .map(DatosPlatilloLote::id_detalle)
+                .filter(Objects::nonNull)
                 .toList();
 
-        // 3. Eliminar los platillos que están en la DB pero ya no en el carrito (fueron borrados)
-        for (restaurante.api.ordenDetalle.OrdenDetalle platilloDb : platosEnDb) {
+        // 3. Eliminar platillos que ya no están en el carrito
+        for (OrdenDetalle platilloDb : platosEnDb) {
             if (!idsRecibidos.contains(platilloDb.getId_detalle())) {
                 ordenDetalleRepository.delete(platilloDb);
                 ticketCocina.add(new DatosPlatilloTicket("🔴 CANCELADO", platilloDb.getProducto().getNombre(), 0, "Cancelado por el mesero"));
             }
         }
 
-        // 4. Procesar los platillos que vienen del frontend
-        for (restaurante.api.ordenDetalle.DatosPlatilloLote platillo : datos.platillos()) {
+        // 4. Procesar platillos del frontend (nuevos o modificados)
+        for (DatosPlatilloLote platillo : datos.platillos()) {
             if (platillo.id_detalle() == null) {
-                // Nuevo platillo
                 var producto = productoRepository.getReferenceById(platillo.id_producto());
-                restaurante.api.ordenDetalle.OrdenDetalle detalle = new restaurante.api.ordenDetalle.OrdenDetalle(platillo, producto, orden);
-                ordenDetalleRepository.save(detalle);
+                ordenDetalleRepository.save(new OrdenDetalle(platillo, producto, orden));
                 ticketCocina.add(new DatosPlatilloTicket("🟢 NUEVO", producto.getNombre(), platillo.cantidad(), platillo.comentarios()));
             } else {
-                // Platillo existente, verificar si cambió
                 var modificado = ordenDetalleRepository.findById(platillo.id_detalle()).orElseThrow();
-                var producto = productoRepository.getReferenceById(platillo.id_producto());
-                
-                boolean cambioCantidad = !modificado.getCantidad().equals(platillo.cantidad());
-                boolean cambioComentarios = (modificado.getComentarios() == null && platillo.comentarios() != null && !platillo.comentarios().isEmpty()) ||
-                        (modificado.getComentarios() != null && !modificado.getComentarios().equals(platillo.comentarios()));
+                var producto   = productoRepository.getReferenceById(platillo.id_producto());
+
+                boolean cambioCantidad    = !modificado.getCantidad().equals(platillo.cantidad());
+                boolean cambioComentarios = (modificado.getComentarios() == null && platillo.comentarios() != null && !platillo.comentarios().isEmpty())
+                        || (modificado.getComentarios() != null && !modificado.getComentarios().equals(platillo.comentarios()));
 
                 if (cambioCantidad || cambioComentarios) {
                     modificado.actualizarPlatillo(platillo);
@@ -139,23 +138,24 @@ public class OrdenService {
             }
         }
 
-        ordenDetalleRepository.flush(); // Asegurar cambios en DB antes de consultar
+        ordenDetalleRepository.flush();
         var platosActualizados = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes());
         orden.recalcularTotal(platosActualizados);
 
-        List<restaurante.api.ordenDetalle.DatosDetalleRespuesta> platillosMapeados = platosActualizados.stream()
-                .map(restaurante.api.ordenDetalle.DatosDetalleRespuesta::new)
+        List<DatosDetalleRespuesta> platillosMapeados = platosActualizados.stream()
+                .map(DatosDetalleRespuesta::new)
                 .toList();
 
-        DatosRespuestaOrden respuesta = new DatosRespuestaOrden(orden.getId_ordenes(), orden.getTotal(), platillosMapeados, orden.getTipo().toString(), orden.getMesa() != null ? orden.getMesa().getId_mesas() : null);
-        DatosTicketCocina ticketFinal = new DatosTicketCocina(orden.getMesa() != null ? orden.getMesa().getId_mesas() : null, orden.getId_ordenes(), orden.getUsuario().getNombre(), orden.getTipo(), ticketCocina);
+        Long idMesa = orden.getMesa() != null ? orden.getMesa().getId_mesas() : null;
+        DatosRespuestaOrden respuesta  = new DatosRespuestaOrden(orden.getId_ordenes(), orden.getTotal(), platillosMapeados, orden.getTipo().toString(), idMesa);
+        DatosTicketCocina  ticketFinal = new DatosTicketCocina(idMesa, orden.getId_ordenes(), orden.getUsuario().getNombre(), orden.getTipo(), ticketCocina);
 
         messagingTemplate.convertAndSend("/topic/cocina", ticketFinal);
-        
-        // Actualizar Panel de Admin con todos los platillos actualizados y el estado correcto
-        java.util.Map<String, Object> updateAdmin = new java.util.HashMap<>();
-        if (orden.getMesa() != null) {
-            updateAdmin.put("id_mesa", orden.getMesa().getId_mesas());
+
+        // Notificar al panel de admin
+        Map<String, Object> updateAdmin = new HashMap<>();
+        if (idMesa != null) {
+            updateAdmin.put("id_mesa", idMesa);
             updateAdmin.put("estado", "OCUPADA");
         }
         updateAdmin.put("id_orden", orden.getId_ordenes());
