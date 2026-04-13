@@ -26,6 +26,9 @@ public class MesasController {
     @Autowired
     private restaurante.api.orden.OrdenRepository ordenRepository;
 
+    @Autowired
+    private restaurante.api.ordenDetalle.OrdenDetalleRepository ordenDetalleRepository;
+
     @PostMapping
     @Transactional
     public ResponseEntity<DatosRespuestaMesa> registrar(@RequestBody @Valid DatosRegistroMesa datosRegistroMesa, UriComponentsBuilder uriComponentsBuilder) {
@@ -34,7 +37,9 @@ public class MesasController {
                 mesa.getId_mesas(),
                 mesa.getNumero(),
                 mesa.getEstado().toString(),
-                null
+                null,
+                null,
+                java.util.List.of()
         );
         URI url = uriComponentsBuilder.path("/mesas/{id}").buildAndExpand(mesa.getId_mesas()).toUri();
         return ResponseEntity.created(url).body(datosRespuesta);
@@ -45,11 +50,20 @@ public class MesasController {
         var mesas = repository.findAll().stream()
                 .map(m -> {
                     var orden = ordenRepository.findActivaByMesa(m.getId_mesas()).orElse(null);
+                    List<restaurante.api.ordenDetalle.DatosDetalleRespuesta> platillos = java.util.List.of();
+                    String nombreMesero = null;
+                    if (orden != null) {
+                        platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes())
+                                .stream().map(restaurante.api.ordenDetalle.DatosDetalleRespuesta::new).toList();
+                        nombreMesero = orden.getUsuario().getNombre();
+                    }
                     return new DatosRespuestaMesa(
                             m.getId_mesas(),
                             m.getNumero(),
                             m.getEstado().toString(),
-                            orden != null ? orden.getId_ordenes() : null
+                            orden != null ? orden.getId_ordenes() : null,
+                            nombreMesero,
+                            platillos
                     );
                 })
                 .toList();
@@ -61,11 +75,20 @@ public class MesasController {
         var mesas = repository.buscarPorRango(inicio, fin).stream()
                 .map(m -> {
                     var orden = ordenRepository.findActivaByMesa(m.getId_mesas()).orElse(null);
+                    List<restaurante.api.ordenDetalle.DatosDetalleRespuesta> platillos = java.util.List.of();
+                    String nombreMesero = null;
+                    if (orden != null) {
+                        platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes())
+                                .stream().map(restaurante.api.ordenDetalle.DatosDetalleRespuesta::new).toList();
+                        nombreMesero = orden.getUsuario().getNombre();
+                    }
                     return new DatosRespuestaMesa(
                             m.getId_mesas(),
                             m.getNumero(),
                             m.getEstado().toString(),
-                            orden != null ? orden.getId_ordenes() : null
+                            orden != null ? orden.getId_ordenes() : null,
+                            nombreMesero,
+                            platillos
                     );
                 })
                 .toList();

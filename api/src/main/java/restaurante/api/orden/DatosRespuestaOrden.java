@@ -19,7 +19,9 @@ public record DatosRespuestaOrden(
         BigDecimal total,
         @NotNull
         @Valid
-        List<DatosDetalleRespuesta> platillos
+        List<DatosDetalleRespuesta> platillos,
+        String tipo,
+        Long id_mesa
 
 ) {
 }

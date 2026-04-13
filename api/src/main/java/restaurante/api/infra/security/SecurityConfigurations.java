@@ -42,7 +42,7 @@ public class SecurityConfigurations {
                 // 3. Manejo de excepciones para la "puerta de entrada" (cuando no hay token) 💂‍♂️
                 .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
                     response.setContentType("application/json");
-                    response.setStatus(403);
+                    response.setStatus(401);
                     response.getWriter().write("{\"mensaje\": \"No se encontró un token válido. Debes iniciar sesión.\"}");
                 }))
                 .build();
@@ -64,8 +64,8 @@ public class SecurityConfigurations {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // Permitimos todas las rutas
-                        .allowedOrigins("http://localhost:3000", "http://localhost:5173") // Puertos comunes de React/Vite
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Métodos permitidos
+                        .allowedOriginPatterns("*") // Permitimos cualquier origen (incluyendo la IP local de Vite/React en celulares)
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH") // Métodos permitidos
                         .allowedHeaders("*")
                         .allowCredentials(true); // Permitimos todos los encabezados
             }
