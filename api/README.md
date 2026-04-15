@@ -1,35 +1,85 @@
-# 🍽️ RestFood API - Sistema de Gestión de Restaurante (Backend)
+# RestFood API - Sistema de Gestión de Restaurante (Backend)
 
-Esta es la API robusta encargada de gestionar toda la lógica de negocio, persistencia de datos y comunicación en tiempo real para el sistema RestFood.
+API que gestiona la lógica de negocio, persistencia y comunicación en tiempo real del sistema RestFood.
 
-## 🚀 Tecnologías Utilizadas
-*   **Java 17** y **Spring Boot 3.5.x**
-*   **Spring Security & JWT:** Autenticación y autorización segura.
-*   **Spring Data JPA:** Gestión de base de datos MySQL.
-*   **Flyway:** Migraciones de base de datos automatizadas.
-*   **WebSockets (STOMP):** Notificaciones en tiempo real para cocina y mesas.
-*   **Lombok:** Reducción de código repetitivo.
-*   **SpringDoc OpenAPI (Swagger):** Documentación interactiva de la API.
-*   **Escpos-Coffee:** Soporte para impresión de tickets térmicos.
+## Tecnologías
 
-## 🛠️ Configuración y Requisitos
-1.  **Base de Datos:** Requiere MySQL 8.0+. Crea una base de datos llamada `restaurante`.
-2.  **Variables de Entorno:**
-    *   `JWT_SECRET`: Clave secreta para la firma de tokens (ej: `mi_clave_secreta_123`).
-3.  **Archivo `application.properties`:**
-    *   Asegúrate de configurar `spring.datasource.username` y `spring.datasource.password`.
+- **Java 17** + **Spring Boot 3.5.x**
+- **Spring Security + JWT** — autenticación y autorización por roles
+- **Spring Data JPA + MySQL 8** — persistencia
+- **Flyway** — migraciones de base de datos
+- **WebSockets (STOMP)** — notificaciones en tiempo real
+- **Lombok** — reducción de boilerplate
+- **SpringDoc OpenAPI (Swagger)** — documentación interactiva
+- **Escpos-Coffee** — impresión de tickets térmicos ESC/POS
 
-## 📦 Instalación y Ejecución
-1.  Clona el repositorio.
-2.  Navega a la carpeta `RestFoodB/api`.
-3.  Ejecuta el proyecto con Maven:
-    ```bash
-    ./mvnw spring-boot:run
-    ```
+## Roles del sistema
 
-## 📖 Documentación de la API
-Una vez que el servidor esté corriendo, puedes acceder a la documentación interactiva en:
-`http://localhost:8080/swagger-ui.html`
+| Rol | Acceso |
+|-----|--------|
+| `DEV` | Total |
+| `ADMIN` | Total excepto dev |
+| `CAJERO` | Órdenes y reportes |
+| `MESERO` | Mesas y órdenes propias |
+| `REPARTIDOR` | Órdenes para llevar |
 
-## 🖨️ Soporte de Impresión
-El sistema está preparado para impresoras USB locales y tiene soporte pre-configurado para migrar a impresoras de red (TCP/IP) simplemente ajustando el `application.properties`.
+## Endpoints principales
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `POST` | `/ordenes` | Abrir mesa/orden |
+| `POST` | `/ordendetalles` | Sincronizar comanda |
+| `PUT` | `/ordenes/{id}/cerrar` | Cobrar y cerrar mesa |
+| `POST` | `/ordenes/{id}/reenviar-cocina` | Reenviar orden completa a cocina |
+| `POST` | `/ordenes/{id}/reimprimir-ticket` | Reimprimir ticket de cliente |
+| `GET` | `/admin?fecha=YYYY-MM-DD` | Reporte completo del día |
+| `GET` | `/admin/cancelaciones?desde=&hasta=` | Cancelaciones por mesero |
+| `GET` | `/ordenes/activa/{id_mesa}` | Orden activa de una mesa |
+
+## WebSocket topics
+
+| Topic | Descripción |
+|-------|-------------|
+| `/topic/mesas` | Estado de mesas en tiempo real |
+| `/topic/cocina` | Tickets y acciones de cocina |
+| `/topic/tickets` | Ticket de cliente al cerrar mesa |
+
+## Impresoras
+
+El sistema soporta hasta 3 impresoras térmicas configuradas en `application.properties`:
+
+```properties
+impresora.cocina1.nombre=POS-58 (1)   # Cocina principal
+impresora.cocina2.nombre=POS-58 (2)   # Cocina secundaria (opcional)
+impresora.tickets.nombre=POS-58 (3)   # Tickets de cliente
+```
+
+Preparado para migrar a TCP/IP: descomenta las líneas de IP/puerto en `application.properties`.
+
+## Historial de eventos (`eventos_orden`)
+
+Cada acción sobre una orden queda registrada automáticamente:
+
+| Evento | Cuándo |
+|--------|--------|
+| `MESA_ABIERTA` | Al abrir una orden |
+| `PLATILLO_NUEVO` | Al agregar un platillo |
+| `PLATILLO_MODIFICADO` | Al cambiar cantidad o comentarios |
+| `PLATILLO_CANCELADO` | Al eliminar un platillo |
+| `MESA_CERRADA` | Al cobrar la mesa |
+
+Útil para auditoría, reportes y entrenamiento de modelos de IA para detección de patrones.
+
+## Requisitos
+
+- MySQL 8.0+ con base de datos `restaurante`
+- Variable de entorno `JWT_SECRET`
+
+## Instalación
+
+```bash
+cd RestFoodB/api
+./mvnw spring-boot:run
+```
+
+Documentación Swagger disponible en `http://localhost:8080/swagger-ui.html`
