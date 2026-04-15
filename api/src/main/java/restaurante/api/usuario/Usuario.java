@@ -38,6 +38,9 @@ public class Usuario implements UserDetails {
     @Column(unique = true, nullable = false)
     private String email;
 
+    @Column(nullable = true)
+    private Integer seccion;
+
 
     public Usuario(DatosRegistroUsuario datosRegistroUsuario) {
         this.id_usuarios = null;
@@ -46,6 +49,7 @@ public class Usuario implements UserDetails {
         this.contrasena = datosRegistroUsuario.contrasena();
         this.estatus = true;
         this.email = datosRegistroUsuario.email();
+        this.seccion = datosRegistroUsuario.seccion();
     }
 
     public Usuario(Long id_usuarios) {

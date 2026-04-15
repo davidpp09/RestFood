@@ -10,6 +10,7 @@ public record DatosRegistroUsuario(
         @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,}$",
         message = "Debe tener mayúscula, minúscula, número y símbolo")
         String contrasena,
-        @NotBlank @Email String email
+        @NotBlank @Email String email,
+        Integer seccion
 ) {
 }
