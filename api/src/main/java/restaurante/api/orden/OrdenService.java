@@ -114,20 +114,23 @@ public class OrdenService {
         // 3. Eliminar platillos que ya no están en el carrito
         for (OrdenDetalle platilloDb : platosEnDb) {
             if (!idsRecibidos.contains(platilloDb.getId_detalle())) {
+                String impresora = platilloDb.getProducto().getCategoria().getImpresora();
                 ordenDetalleRepository.delete(platilloDb);
-                ticketCocina.add(new DatosPlatilloTicket("🔴 CANCELADO", platilloDb.getProducto().getNombre(), 0, "Cancelado por el mesero"));
+                ticketCocina.add(new DatosPlatilloTicket("🔴 CANCELADO", platilloDb.getProducto().getNombre(), 0, "Cancelado por el mesero", impresora));
             }
         }
 
         // 4. Procesar platillos del frontend (nuevos o modificados)
         for (DatosPlatilloLote platillo : datos.platillos()) {
             if (platillo.id_detalle() == null) {
-                var producto = productoRepository.getReferenceById(platillo.id_producto());
+                var producto = productoRepository.findById(platillo.id_producto()).orElseThrow();
+                String impresora = producto.getCategoria().getImpresora();
                 ordenDetalleRepository.save(new OrdenDetalle(platillo, producto, orden));
-                ticketCocina.add(new DatosPlatilloTicket("🟢 NUEVO", producto.getNombre(), platillo.cantidad(), platillo.comentarios()));
+                ticketCocina.add(new DatosPlatilloTicket("🟢 NUEVO", producto.getNombre(), platillo.cantidad(), platillo.comentarios(), impresora));
             } else {
                 var modificado = ordenDetalleRepository.findById(platillo.id_detalle()).orElseThrow();
-                var producto   = productoRepository.getReferenceById(platillo.id_producto());
+                var producto   = productoRepository.findById(platillo.id_producto()).orElseThrow();
+                String impresora = producto.getCategoria().getImpresora();
 
                 boolean cambioCantidad    = !modificado.getCantidad().equals(platillo.cantidad());
                 boolean cambioComentarios = (modificado.getComentarios() == null && platillo.comentarios() != null && !platillo.comentarios().isEmpty())
@@ -135,7 +138,7 @@ public class OrdenService {
 
                 if (cambioCantidad || cambioComentarios) {
                     modificado.actualizarPlatillo(platillo);
-                    ticketCocina.add(new DatosPlatilloTicket("🟡 MODIFICADO", producto.getNombre(), platillo.cantidad(), platillo.comentarios()));
+                    ticketCocina.add(new DatosPlatilloTicket("🟡 MODIFICADO", producto.getNombre(), platillo.cantidad(), platillo.comentarios(), impresora));
                 }
             }
         }
