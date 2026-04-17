@@ -345,18 +345,6 @@ Respuesta estandarizada:
 
 ---
 
-## Decisiones que podrías cuestionar
-
-**¿Por qué no usas DDD estricto / CQRS / event sourcing?** Porque es un sistema para un restaurante de un pueblo, no un banco. Over-engineering aquí es peor que la deuda técnica.
-
-**¿Por qué no hay tests unitarios todavía?** Honestamente porque estaba priorizando que funcione para desplegar. Es lo primero que voy a agregar en la v2.
-
-**¿Por qué MySQL y no Postgres?** Porque es lo que está instalado en las PCs del restaurante y lo que conozco. Postgres sería técnicamente mejor para reportes complejos.
-
-**¿Por qué Flyway en `validate` por defecto?** Porque `update` deja que Hibernate altere el schema silenciosamente; eso está bien en dev pero en producción quieres que cada cambio de schema pase por una migración versionada.
-
----
-
 ## Despliegue (cheat sheet)
 
 1. `mvn clean package` → genera `target/api-0.0.1-SNAPSHOT.jar`.
@@ -370,13 +358,3 @@ Si algo falla, los logs están en `logs/` (configurable en `application.properti
 
 ---
 
-## Problemas comunes
-
-| Síntoma | Causa probable | Solución |
-|---|---|---|
-| `Communications link failure` al arrancar | MySQL no está corriendo o `DB_URL` apunta mal | Verifica `systemctl status mysql` o `services.msc` |
-| `JWT secret is too short` | `JWT_SECRET` < 32 chars | Usa `openssl rand -base64 48` |
-| CORS bloqueado en el browser | Origen del frontend no está en `CORS_ORIGINS` | Agrégalo a la variable y reinicia |
-| Impresora no responde | Device name mal escrito en la categoría | Verifica el nombre exacto en "Impresoras del sistema" |
-| WebSocket se desconecta constantemente | Token expiró o fue revocado | El frontend debería reconectar solo; si no, revisar `websocketService.js` |
-| 401 en `/usuarios/me` inmediato | El token en localStorage es viejo y `JWT_SECRET` cambió | Logout + login. Los tokens firmados con el secret anterior ya no valen |
