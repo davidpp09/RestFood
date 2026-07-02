@@ -22,7 +22,8 @@ public record DatosRespuestaOrden(
         @Valid
         List<DatosDetalleRespuesta> platillos,
         String tipo,
-        Long id_mesa
+        Long id_mesa,
+        String servicio
 
 ) {
 }

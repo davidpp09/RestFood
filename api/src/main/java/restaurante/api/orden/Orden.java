@@ -109,11 +109,36 @@ public class Orden {
         this.fechaCierre = LocalDateTime.now();
     }
 
+    public void cancelar() {
+        if (this.estatus == Estatus.PAGADA) {
+            throw new restaurante.api.infra.errores.ValidacionException("Esta orden ya fue pagada, no se puede cancelar");
+        }
+        if (this.estatus == Estatus.CANCELADA) {
+            throw new restaurante.api.infra.errores.ValidacionException("Esta orden ya fue cancelada anteriormente");
+        }
+        if (this.mesa != null && this.mesa.getEstado() == restaurante.api.mesa.Estado.LIBRE) {
+            throw new restaurante.api.infra.errores.ValidacionException("La mesa ya fue liberada");
+        }
+        this.estatus = Estatus.CANCELADA;
+        this.fechaCierre = LocalDateTime.now();
+    }
+
     public void marcarComoServido() {
         if (this.estatus != Estatus.PREPARANDO) {
             throw new restaurante.api.infra.errores.ValidacionException("Solo se pueden marcar como servidas las órdenes en preparación.");
         }
         this.estatus = Estatus.SERVIDO;
+    }
+
+    /**
+     * Regresa una orden ya servida a preparación cuando el mesero le agrega o
+     * modifica platillos, para que vuelva a aparecer en el panel de cocina.
+     * No hace nada si la orden está PAGADA (no debe reabrirse) o si sigue en PREPARANDO.
+     */
+    public void reabrir() {
+        if (this.estatus == Estatus.SERVIDO) {
+            this.estatus = Estatus.PREPARANDO;
+        }
     }
 
 }

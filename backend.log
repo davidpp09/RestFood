@@ -1,0 +1,52 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::               (v3.5.10)
+
+2026-06-20T21:02:33.073-06:00  INFO 74266 --- [Rest Api] [           main] restaurante.api.RestApiApplication       : Starting RestApiApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 74266 (/home/david/RestFoodB/api/target/api-0.0.1-SNAPSHOT.jar started by david in /home/david/hmdm-docker)
+2026-06-20T21:02:33.075-06:00  INFO 74266 --- [Rest Api] [           main] restaurante.api.RestApiApplication       : No active profile set, falling back to 1 default profile: "default"
+2026-06-20T21:02:33.706-06:00  INFO 74266 --- [Rest Api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-20T21:02:33.742-06:00  INFO 74266 --- [Rest Api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 31 ms. Found 7 JPA repository interfaces.
+2026-06-20T21:02:34.248-06:00  INFO 74266 --- [Rest Api] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-06-20T21:02:34.268-06:00  INFO 74266 --- [Rest Api] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-06-20T21:02:34.268-06:00  INFO 74266 --- [Rest Api] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.50]
+2026-06-20T21:02:34.311-06:00  INFO 74266 --- [Rest Api] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-06-20T21:02:34.312-06:00  INFO 74266 --- [Rest Api] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1208 ms
+2026-06-20T21:02:34.590-06:00  INFO 74266 --- [Rest Api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-06-20T21:02:34.696-06:00  INFO 74266 --- [Rest Api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@28cb86b2
+2026-06-20T21:02:34.696-06:00  INFO 74266 --- [Rest Api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-06-20T21:02:34.726-06:00  INFO 74266 --- [Rest Api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:mysql://localhost:3306/restaurante?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true (MySQL 8.0)
+2026-06-20T21:02:34.757-06:00  INFO 74266 --- [Rest Api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 1 migration (execution time 00:00.015s)
+2026-06-20T21:02:34.767-06:00  INFO 74266 --- [Rest Api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema `restaurante`: 0
+2026-06-20T21:02:34.769-06:00  INFO 74266 --- [Rest Api] [           main] o.f.core.internal.command.DbMigrate      : Schema `restaurante` is up to date. No migration necessary.
+2026-06-20T21:02:34.818-06:00  INFO 74266 --- [Rest Api] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-06-20T21:02:34.844-06:00  INFO 74266 --- [Rest Api] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.41.Final
+2026-06-20T21:02:34.870-06:00  INFO 74266 --- [Rest Api] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-06-20T21:02:34.988-06:00  INFO 74266 --- [Rest Api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-20T21:02:35.027-06:00  INFO 74266 --- [Rest Api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 8.0.46
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-06-20T21:02:35.502-06:00  INFO 74266 --- [Rest Api] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-20T21:02:35.522-06:00  INFO 74266 --- [Rest Api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-20T21:02:35.744-06:00  INFO 74266 --- [Rest Api] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-06-20T21:02:36.181-06:00  INFO 74266 --- [Rest Api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name autenticacionService
+2026-06-20T21:02:36.280-06:00  WARN 74266 --- [Rest Api] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-20T21:02:36.760-06:00  INFO 74266 --- [Rest Api] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+2026-06-20T21:02:36.760-06:00  INFO 74266 --- [Rest Api] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@f5eff92]]
+2026-06-20T21:02:36.761-06:00  INFO 74266 --- [Rest Api] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+2026-06-20T21:02:36.772-06:00  INFO 74266 --- [Rest Api] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-06-20T21:02:36.781-06:00  INFO 74266 --- [Rest Api] [           main] restaurante.api.RestApiApplication       : Started RestApiApplication in 3.953 seconds (process running for 4.215)
+2026-06-20T21:02:57.855-06:00  INFO 74266 --- [Rest Api] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-20T21:02:57.855-06:00  INFO 74266 --- [Rest Api] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-06-20T21:02:57.856-06:00  INFO 74266 --- [Rest Api] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-06-20T21:03:36.765-06:00  INFO 74266 --- [Rest Api] [MessageBroker-1] o.s.w.s.c.WebSocketMessageBrokerStats    : WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 1, active threads = 1, queued tasks = 0, completed tasks = 0]

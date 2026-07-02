@@ -57,6 +57,14 @@ public class OrdenesController {
         return ResponseEntity.ok(ticket);
     }
 
+    @PutMapping("/{id}/cancelar")
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'CAJERO', 'MESERO', 'REPARTIDOR')")
+    public ResponseEntity<Void> cancelarOrden(@PathVariable Long id) {
+        service.cancelarOrden(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/reimprimir-ticket")
     @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'CAJERO', 'MESERO')")
     public ResponseEntity<DatosRespuestaCuenta> reimprimirTicket(@PathVariable Long id) {

@@ -24,7 +24,7 @@ public class AdminController {
     @Autowired
     OrdenService ordenService;
 
-    @GetMapping
+    @GetMapping("/corte-dia")
     public ResponseEntity<DatosCorteDia> corteDia(
             @RequestParam(required = false) LocalDate fecha) {
         var datos = ordenService.master(fecha != null ? fecha : LocalDate.now());

@@ -183,6 +183,12 @@ public class OrdenService {
             }
         }
 
+        // Si la orden ya estaba SERVIDA y el mesero le agregó/modificó platillos,
+        // regresarla a PREPARANDO para que reaparezca en el panel de cocina.
+        if (!ticketCocina.isEmpty()) {
+            orden.reabrir();
+        }
+
         ordenDetalleRepository.flush();
         var platosActualizados = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes());
         orden.recalcularTotal(platosActualizados);
@@ -192,7 +198,7 @@ public class OrdenService {
                 .toList();
 
         Long idMesa = orden.getMesa() != null ? orden.getMesa().getId_mesas() : null;
-        DatosRespuestaOrden respuesta  = new DatosRespuestaOrden(orden.getId_ordenes(), orden.getNumero_comanda(), orden.getTotal(), platillosMapeados, orden.getTipo().toString(), idMesa);
+        DatosRespuestaOrden respuesta  = new DatosRespuestaOrden(orden.getId_ordenes(), orden.getNumero_comanda(), orden.getTotal(), platillosMapeados, orden.getTipo().toString(), idMesa, orden.getServicio().toString());
         DatosTicketCocina  ticketFinal = new DatosTicketCocina(idMesa, orden.getId_ordenes(), orden.getNumero_comanda(), orden.getUsuario().getNombre(), orden.getTipo(), ticketCocina);
 
         messagingTemplate.convertAndSend("/topic/cocina", ticketFinal);
@@ -226,6 +232,11 @@ public class OrdenService {
             throw new ValidacionException("No tienes permiso para cerrar esta orden porque no la abriste tú.");
         }
 
+        var platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes());
+        if (platillos.isEmpty()) {
+            throw new ValidacionException("No se puede cerrar una orden sin platillos agregados.");
+        }
+
         List<Orden> otrasOrdenes = new ArrayList<>();
         if (orden.getMesa() != null) {
             var ordenesActivas = ordenRepository.findByMesaAndEstatus(orden.getMesa(), Estatus.PREPARANDO);
@@ -237,8 +248,7 @@ public class OrdenService {
         if (orden.getMesa() != null) orden.getMesa().liberar();
         eventoOrdenRepository.save(new EventoOrden(orden, usuarioAutenticado, TipoEvento.MESA_CERRADA));
 
-        // --- Lecturas y construcción del ticket ---
-        var platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes());
+        // --- Construcción del ticket ---
         List<DatosDetalleRespuesta> platillosMapeados = platillos.stream().map(DatosDetalleRespuesta::new).toList();
 
         DatosRespuestaCuenta ticket = new DatosRespuestaCuenta(
@@ -268,6 +278,32 @@ public class OrdenService {
         impresoraService.imprimirTicketCliente(ticket);
 
         return ticket;
+    }
+
+    @Transactional
+    public void cancelarOrden(Long id) {
+        var orden = ordenRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Orden no encontrada"));
+
+        var usuarioAutenticado = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!esSuperUsuario(usuarioAutenticado.getRol()) && !orden.getUsuario().getId_usuarios().equals(usuarioAutenticado.getId_usuarios())) {
+            throw new ValidacionException("No tienes permiso para cancelar esta orden porque no la abriste tú.");
+        }
+
+        var platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes());
+        if (!platillos.isEmpty()) {
+            throw new ValidacionException("No se puede cancelar una orden que ya tiene platillos agregados. Usa Cerrar y Cobrar.");
+        }
+
+        orden.cancelar();
+        if (orden.getMesa() != null) orden.getMesa().liberar();
+        eventoOrdenRepository.save(new EventoOrden(orden, usuarioAutenticado, TipoEvento.MESA_CANCELADA));
+
+        if (orden.getMesa() != null) {
+            DatosMesaAbierta avisoMesa = new DatosMesaAbierta(orden.getMesa().getId_mesas(), orden.getMesa().getEstado(), "", null, null);
+            messagingTemplate.convertAndSend("/topic/mesas", avisoMesa);
+            System.out.println("✅ [WS /topic/mesas] Mesa cancelada y liberada: " + orden.getMesa().getId_mesas());
+        }
     }
 
     @Transactional(readOnly = true)
@@ -349,7 +385,7 @@ public class OrdenService {
                 .map(DatosDetalleRespuesta::new)
                 .toList();
 
-        return new DatosRespuestaOrden(orden.getId_ordenes(), orden.getNumero_comanda(), orden.getTotal(), platillosMapeados, orden.getTipo().toString(), orden.getMesa() != null ? orden.getMesa().getId_mesas() : null);
+        return new DatosRespuestaOrden(orden.getId_ordenes(), orden.getNumero_comanda(), orden.getTotal(), platillosMapeados, orden.getTipo().toString(), orden.getMesa() != null ? orden.getMesa().getId_mesas() : null, orden.getServicio().toString());
     }
 
     @Transactional(readOnly = true)
@@ -379,7 +415,7 @@ public class OrdenService {
             List<DatosDetalleRespuesta> platillosMapeados = platillos.stream()
                     .map(DatosDetalleRespuesta::new)
                     .toList();
-            return new DatosRespuestaOrden(orden.getId_ordenes(), orden.getNumero_comanda(), orden.getTotal(), platillosMapeados, orden.getTipo().toString(), orden.getMesa() != null ? orden.getMesa().getId_mesas() : null);
+            return new DatosRespuestaOrden(orden.getId_ordenes(), orden.getNumero_comanda(), orden.getTotal(), platillosMapeados, orden.getTipo().toString(), orden.getMesa() != null ? orden.getMesa().getId_mesas() : null, orden.getServicio().toString());
         }).toList();
     }
 

@@ -4,6 +4,7 @@ import com.github.anastaciocintra.escpos.EscPos;
 import com.github.anastaciocintra.escpos.EscPosConst;
 import com.github.anastaciocintra.escpos.Style;
 import com.github.anastaciocintra.output.PrinterOutputStream;
+import com.github.anastaciocintra.output.TcpIpOutputStream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import restaurante.api.orden.Tipo;
 import restaurante.api.ordenDetalle.DatosDetalleRespuesta;
 
 import javax.print.PrintService;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,22 +26,34 @@ public class ImpresoraService {
     private static final String SIN_IMPRESION = "SIN_IMPRESION";
     private static final String COCINA_2      = "COCINA_2";
 
+    // Papel 80mm a fuente normal ≈ 48 columnas (58mm serían 32)
+    private static final String SEPARADOR = "=".repeat(48);
+
     @Value("${impresora.cocina1.nombre}")
     private String nombreCocina1;
+    @Value("${impresora.cocina1.ip:}")
+    private String ipCocina1;
+    @Value("${impresora.cocina1.puerto:9100}")
+    private int puertoCocina1;
 
     @Value("${impresora.cocina2.nombre}")
     private String nombreCocina2;
+    @Value("${impresora.cocina2.ip:}")
+    private String ipCocina2;
+    @Value("${impresora.cocina2.puerto:9100}")
+    private int puertoCocina2;
 
     @Value("${impresora.tickets.nombre}")
     private String nombreTickets;
+    @Value("${impresora.tickets.ip:}")
+    private String ipTickets;
+    @Value("${impresora.tickets.puerto:9100}")
+    private int puertoTickets;
 
     /**
      * Punto de entrada. Agrupa los platillos del ticket por su impresora destino
      * y envía un ticket separado a cada una. Los platillos con "SIN_IMPRESION" (o null)
      * se descartan silenciosamente.
-     *
-     * Para migrar a TCP/IP en el futuro: reemplaza {@code abrirConexionUsb} por
-     * {@code abrirConexionSocket(ip, puerto)} y pasa las coordenadas como parámetro.
      */
     @Async
     public void imprimirComandaCocina(DatosTicketCocina ticket) {
@@ -54,24 +68,39 @@ public class ImpresoraService {
         }
 
         grupos.forEach((tipoImpresora, platillos) -> {
-            String nombreImpresora = COCINA_2.equals(tipoImpresora) ? nombreCocina2 : nombreCocina1;
-            imprimirEnImpresora(nombreImpresora, tipoImpresora, ticket, platillos);
+            boolean esCocina2 = COCINA_2.equals(tipoImpresora);
+            String nombreImpresora = esCocina2 ? nombreCocina2 : nombreCocina1;
+            String ip = esCocina2 ? ipCocina2 : ipCocina1;
+            int puerto = esCocina2 ? puertoCocina2 : puertoCocina1;
+            imprimirEnImpresora(nombreImpresora, ip, puerto, tipoImpresora, ticket, platillos);
         });
     }
 
     // ─── Impresión física ────────────────────────────────────────────────────────
 
-    private void imprimirEnImpresora(String nombreImpresora, String tipoImpresora,
+    /**
+     * Abre la conexión hacia la impresora física. Si {@code ip} viene configurada
+     * (impresora.*.ip en application.properties), imprime por red (puerto 9100,
+     * estándar RAW/JetDirect). Si no, cae de vuelta a la cola USB/CUPS por nombre.
+     */
+    private OutputStream abrirConexion(String nombreImpresora, String ip, int puerto) throws Exception {
+        if (ip != null && !ip.isBlank()) {
+            return new TcpIpOutputStream(ip, puerto);
+        }
+        PrintService printService = PrinterOutputStream.getPrintServiceByName(nombreImpresora);
+        return printService != null ? new PrinterOutputStream(printService) : null;
+    }
+
+    private void imprimirEnImpresora(String nombreImpresora, String ip, int puerto, String tipoImpresora,
                                      DatosTicketCocina ticket, List<DatosPlatilloTicket> platillos) {
         try {
-            PrintService printService = PrinterOutputStream.getPrintServiceByName(nombreImpresora);
-            if (printService == null) {
+            OutputStream salida = abrirConexion(nombreImpresora, ip, puerto);
+            if (salida == null) {
                 System.err.println("🖨️❌ No se encontró la impresora [" + tipoImpresora + "]: " + nombreImpresora);
                 return;
             }
 
-            PrinterOutputStream printerOutputStream = new PrinterOutputStream(printService);
-            EscPos escpos = new EscPos(printerOutputStream);
+            EscPos escpos = new EscPos(salida);
 
             escribirTicket(escpos, ticket, platillos);
 
@@ -114,7 +143,7 @@ public class ImpresoraService {
         // Cabecera
         escpos.writeLF(titulo, "NUEVA ORDEN");
         escpos.writeLF(subtitulo, "COMANDA #" + ticket.numero_comanda());
-        escpos.writeLF("================================");
+        escpos.writeLF(SEPARADOR);
 
         if (ticket.tipo() == Tipo.LOZA && ticket.id_mesa() != null) {
             escpos.writeLF(titulo, "MESA " + ticket.id_mesa());
@@ -123,7 +152,7 @@ public class ImpresoraService {
         }
 
         escpos.writeLF("Mesero: " + ticket.nombre());
-        escpos.writeLF("================================");
+        escpos.writeLF(SEPARADOR);
         escpos.feed(1);
 
         // Platillos del grupo
@@ -141,8 +170,8 @@ public class ImpresoraService {
             escpos.feed(1);
         }
 
-        escpos.writeLF("================================");
-        escpos.writeLF(normal, "        -- FIN ORDEN --         ");
+        escpos.writeLF(SEPARADOR);
+        escpos.writeLF(subtitulo, "-- FIN ORDEN --");
     }
 
     // ─── Ticket de cliente ───────────────────────────────────────────────────────
@@ -150,14 +179,13 @@ public class ImpresoraService {
     @Async
     public void imprimirTicketCliente(DatosRespuestaCuenta ticket) {
         try {
-            PrintService printService = PrinterOutputStream.getPrintServiceByName(nombreTickets);
-            if (printService == null) {
+            OutputStream salida = abrirConexion(nombreTickets, ipTickets, puertoTickets);
+            if (salida == null) {
                 System.err.println("🖨️❌ No se encontró la impresora de tickets: " + nombreTickets);
                 return;
             }
 
-            PrinterOutputStream printerOutputStream = new PrinterOutputStream(printService);
-            EscPos escpos = new EscPos(printerOutputStream);
+            EscPos escpos = new EscPos(salida);
 
             escribirTicketCliente(escpos, ticket);
 
@@ -201,7 +229,7 @@ public class ImpresoraService {
         // Cabecera
         escpos.writeLF(titulo, "RESTFOOD");
         escpos.writeLF(centro, "Ticket de Venta");
-        escpos.writeLF("================================");
+        escpos.writeLF(SEPARADOR);
 
         // Datos de la orden
         escpos.writeLF(normal, "Orden  : #" + ticket.id_orden());
@@ -215,9 +243,9 @@ public class ImpresoraService {
             escpos.writeLF(normal, "Fecha  : " + ticket.fechaCierre().toLocalDate());
             escpos.writeLF(normal, "Hora   : " + ticket.fechaCierre().toLocalTime().withNano(0));
         }
-        escpos.writeLF("================================");
+        escpos.writeLF(SEPARADOR);
         escpos.writeLF(negrita, "CONSUMO");
-        escpos.writeLF("================================");
+        escpos.writeLF(SEPARADOR);
         escpos.feed(1);
 
         // Platillos
@@ -233,14 +261,14 @@ public class ImpresoraService {
             escpos.feed(1);
         }
 
-        escpos.writeLF("================================");
+        escpos.writeLF(SEPARADOR);
         escpos.writeLF(normal, "");
 
         // Total
         escpos.writeLF(negrita, "TOTAL:");
         escpos.writeLF(totalStyle, "$" + ticket.total());
 
-        escpos.writeLF("================================");
+        escpos.writeLF(SEPARADOR);
         escpos.feed(1);
         escpos.writeLF(centro, "!Gracias por su visita!");
         escpos.writeLF(centro, "Vuelva pronto :)");
