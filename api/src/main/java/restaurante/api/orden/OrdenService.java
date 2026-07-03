@@ -88,7 +88,8 @@ public class OrdenService {
                     mesa.getEstado(),
                     usuario.getNombre(),
                     ordenGuardada.getId_ordenes(),
-                    numeroComanda
+                    numeroComanda,
+                    ordenGuardada.getFecha_apertura()
             );
             messagingTemplate.convertAndSend("/topic/mesas", avisoMesa);
             System.out.println("✅ [WS /topic/mesas] Mesa abierta: " + avisoMesa);
@@ -265,7 +266,7 @@ public class OrdenService {
 
         // --- WebSocket: todos después de confirmar DB ---
         if (orden.getMesa() != null) {
-            DatosMesaAbierta avisoMesa = new DatosMesaAbierta(orden.getMesa().getId_mesas(), orden.getMesa().getEstado(), "", null, null);
+            DatosMesaAbierta avisoMesa = new DatosMesaAbierta(orden.getMesa().getId_mesas(), orden.getMesa().getEstado(), "", null, null, null);
             messagingTemplate.convertAndSend("/topic/mesas", avisoMesa);
             System.out.println("✅ [WS /topic/mesas] Mesa liberada: " + orden.getMesa().getId_mesas());
         }
@@ -300,7 +301,7 @@ public class OrdenService {
         eventoOrdenRepository.save(new EventoOrden(orden, usuarioAutenticado, TipoEvento.MESA_CANCELADA));
 
         if (orden.getMesa() != null) {
-            DatosMesaAbierta avisoMesa = new DatosMesaAbierta(orden.getMesa().getId_mesas(), orden.getMesa().getEstado(), "", null, null);
+            DatosMesaAbierta avisoMesa = new DatosMesaAbierta(orden.getMesa().getId_mesas(), orden.getMesa().getEstado(), "", null, null, null);
             messagingTemplate.convertAndSend("/topic/mesas", avisoMesa);
             System.out.println("✅ [WS /topic/mesas] Mesa cancelada y liberada: " + orden.getMesa().getId_mesas());
         }

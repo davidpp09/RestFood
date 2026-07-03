@@ -39,7 +39,8 @@ public class MesasController {
                 mesa.getEstado().toString(),
                 null,
                 null,
-                java.util.List.of()
+                java.util.List.of(),
+                null
         );
         URI url = uriComponentsBuilder.path("/mesas/{id}").buildAndExpand(mesa.getId_mesas()).toUri();
         return ResponseEntity.created(url).body(datosRespuesta);
@@ -63,7 +64,8 @@ public class MesasController {
                             m.getEstado().toString(),
                             orden != null ? orden.getId_ordenes() : null,
                             nombreMesero,
-                            platillos
+                            platillos,
+                            orden != null ? orden.getFecha_apertura() : null
                     );
                 })
                 .toList();
@@ -88,7 +90,8 @@ public class MesasController {
                             m.getEstado().toString(),
                             orden != null ? orden.getId_ordenes() : null,
                             nombreMesero,
-                            platillos
+                            platillos,
+                            orden != null ? orden.getFecha_apertura() : null
                     );
                 })
                 .toList();
