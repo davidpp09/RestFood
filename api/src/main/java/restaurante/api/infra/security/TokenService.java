@@ -36,7 +36,9 @@ public class TokenService {
     }
 
     private Instant generarFechaExpiracion() {
-        // El token durará 2 horas por seguridad
+        // 12 horas: cubre el turno completo del restaurante sin re-login a media jornada.
+        // Desactivar un usuario (estatus=0) le corta el acceso de inmediato vía SecurityFilter,
+        // así que la duración larga no deja tokens "vivos" de personal dado de baja.
         return LocalDateTime.now().plusHours(12).toInstant(ZoneOffset.of("-06:00"));
     }
 

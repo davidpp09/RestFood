@@ -63,9 +63,12 @@ public class OrdenService {
 
     @Transactional // ✅ faltaba
     public DatosApertura abrirCuenta(DatosAbrirOrden datos) {
-        // Tomar SIEMPRE el usuario del token — nunca confiar en el id_usuario del body
+        // Tomar SIEMPRE el usuario del token — nunca confiar en el id_usuario del body.
+        // Lock pesimista sobre el usuario: dos aperturas simultáneas del mismo mesero
+        // se serializan, y el COUNT+1 de abajo ya no puede dar comandas duplicadas.
         var autenticado = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        var usuario = usuarioRepository.getReferenceById(autenticado.getId_usuarios());
+        var usuario = usuarioRepository.findByIdConBloqueo(autenticado.getId_usuarios())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         boolean conMesa = usuario.getRol().equals(Roles.MESERO) || esSuperUsuario(usuario.getRol());
 
         LocalDateTime inicioDia = LocalDate.now().atStartOfDay();

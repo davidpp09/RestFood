@@ -33,7 +33,9 @@ public class SecurityFilter extends OncePerRequestFilter {
                 var nombreUsuario = tokenService.getSubject(token);
                 if (nombreUsuario != null) {
                     var usuario = repository.findByEmail(nombreUsuario);
-                    if (usuario != null) {
+                    // isEnabled(): un usuario desactivado pierde el acceso de inmediato,
+                    // aunque su token JWT siga siendo criptográficamente válido.
+                    if (usuario != null && usuario.isEnabled()) {
                         var authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                     }
