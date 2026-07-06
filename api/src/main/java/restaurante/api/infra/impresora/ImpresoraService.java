@@ -145,8 +145,9 @@ public class ImpresoraService {
         escpos.writeLF(subtitulo, "COMANDA #" + ticket.numero_comanda());
         escpos.writeLF(SEPARADOR);
 
-        if (ticket.tipo() == Tipo.LOZA && ticket.id_mesa() != null) {
-            escpos.writeLF(titulo, "MESA " + ticket.id_mesa());
+        if (ticket.tipo() == Tipo.LOZA && ticket.numero_mesa() != null) {
+            // numero_mesa es el número visible de la mesa (mesas.numero), no el id interno
+            escpos.writeLF(titulo, "MESA " + ticket.numero_mesa());
         } else {
             escpos.writeLF(titulo, "PARA LLEVAR");
         }

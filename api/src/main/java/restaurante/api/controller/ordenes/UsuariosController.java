@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.util.UriComponentsBuilder;
+import restaurante.api.infra.errores.RecursoNoEncontradoException;
+import restaurante.api.infra.errores.ValidacionException;
 import restaurante.api.infra.security.DatosLoginRespuesta;
 import restaurante.api.infra.security.RoutingService;
 import restaurante.api.usuario.*;
@@ -83,8 +85,19 @@ public class UsuariosController {
     @PutMapping
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
-    public ResponseEntity<DatosRespuestaUsuario> actualizar(@RequestBody @Valid DatosActualizacionUsuario datos) {
-        var usuario = repository.getReferenceById(datos.id_usuarios());
+    public ResponseEntity<DatosRespuestaUsuario> actualizar(@RequestBody @Valid DatosActualizacionUsuario datos,
+                                                            @AuthenticationPrincipal Usuario solicitante) {
+        var usuario = repository.findById(datos.id_usuarios())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        // Solo un DEV puede tocar cuentas DEV o asignar el rol DEV
+        if (solicitante.getRol() != Roles.DEV) {
+            if (usuario.getRol() == Roles.DEV) {
+                throw new ValidacionException("Solo un usuario DEV puede modificar una cuenta DEV.");
+            }
+            if (datos.rol() == Roles.DEV) {
+                throw new ValidacionException("Solo un usuario DEV puede asignar el rol DEV.");
+            }
+        }
         usuario.actualizarInformacion(datos);
         return ResponseEntity.ok(new DatosRespuestaUsuario(
                 usuario.getId_usuarios(),
@@ -93,6 +106,22 @@ public class UsuariosController {
                 usuario.getEmail(),
                 usuario.getEstatus()
         ));
+    }
+
+    // Reset de contraseña por un administrador (el empleado no necesita la anterior)
+    @PutMapping("/{id}/contrasena")
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
+    public ResponseEntity<Void> cambiarContrasena(@PathVariable Long id,
+                                                  @RequestBody @Valid DatosCambioContrasena datos,
+                                                  @AuthenticationPrincipal Usuario solicitante) {
+        var usuario = repository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        if (usuario.getRol() == Roles.DEV && solicitante.getRol() != Roles.DEV) {
+            throw new ValidacionException("Solo un usuario DEV puede cambiar la contraseña de una cuenta DEV.");
+        }
+        usuario.setContrasena(passwordEncoder.encode(datos.contrasena()));
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")

@@ -205,8 +205,9 @@ public class OrdenService {
                 .toList();
 
         Long idMesa = orden.getMesa() != null ? orden.getMesa().getId_mesas() : null;
+        String numeroMesa = orden.getMesa() != null ? orden.getMesa().getNumero() : null;
         DatosRespuestaOrden respuesta  = new DatosRespuestaOrden(orden.getId_ordenes(), orden.getNumero_comanda(), orden.getTotal(), platillosMapeados, orden.getTipo().toString(), idMesa, orden.getServicio().toString());
-        DatosTicketCocina  ticketFinal = new DatosTicketCocina(idMesa, orden.getId_ordenes(), orden.getNumero_comanda(), orden.getUsuario().getNombre(), orden.getTipo(), ticketCocina);
+        DatosTicketCocina  ticketFinal = new DatosTicketCocina(idMesa, numeroMesa, orden.getId_ordenes(), orden.getNumero_comanda(), orden.getUsuario().getNombre(), orden.getTipo(), ticketCocina);
 
         messagingTemplate.convertAndSend("/topic/cocina", ticketFinal);
 
@@ -268,7 +269,7 @@ public class OrdenService {
         DatosRespuestaCuenta ticket = new DatosRespuestaCuenta(
                 orden.getId_ordenes(),
                 orden.getNumero_comanda(),
-                orden.getMesa() != null ? orden.getMesa().getId_mesas() : null,
+                orden.getMesa() != null ? orden.getMesa().getNumero() : null,
                 orden.getTipo().toString(),
                 orden.getFecha_apertura(),
                 orden.getFechaCierre(),
@@ -343,8 +344,10 @@ public class OrdenService {
                 .toList();
 
         Long idMesa = orden.getMesa() != null ? orden.getMesa().getId_mesas() : null;
+        String numeroMesa = orden.getMesa() != null ? orden.getMesa().getNumero() : null;
         DatosTicketCocina ticketFinal = new DatosTicketCocina(
                 idMesa,
+                numeroMesa,
                 orden.getId_ordenes(),
                 orden.getNumero_comanda(),
                 orden.getUsuario().getNombre(),
@@ -371,7 +374,7 @@ public class OrdenService {
         DatosRespuestaCuenta ticket = new DatosRespuestaCuenta(
                 orden.getId_ordenes(),
                 orden.getNumero_comanda(),
-                orden.getMesa() != null ? orden.getMesa().getId_mesas() : null,
+                orden.getMesa() != null ? orden.getMesa().getNumero() : null,
                 orden.getTipo().toString(),
                 orden.getFecha_apertura(),
                 orden.getFechaCierre(),

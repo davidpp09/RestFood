@@ -12,15 +12,15 @@ public record DatosListaUsuario(
         String nombre,
         @NotNull
         Roles rol,
-        @NotBlank
-        String constrasena,
         @NotNull
         Boolean estatus,
         @NotBlank
         @Email
-        String email
+        String email,
+        Integer seccion
 ) {
+    // Nunca incluir la contraseña (ni siquiera el hash) en respuestas de la API
     public DatosListaUsuario(Usuario usuario) {
-        this(usuario.getId_usuarios(), usuario.getNombre(), usuario.getRol(), usuario.getContrasena(), usuario.getEstatus(), usuario.getEmail());
+        this(usuario.getId_usuarios(), usuario.getNombre(), usuario.getRol(), usuario.getEstatus(), usuario.getEmail(), usuario.getSeccion());
     }
 }

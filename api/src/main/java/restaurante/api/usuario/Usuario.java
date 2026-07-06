@@ -102,7 +102,16 @@ public class Usuario implements UserDetails {
         if (datos.email() != null) {
             this.email = datos.email();
         }
-
+        if (datos.rol() != null) {
+            this.rol = datos.rol();
+            // La sección solo aplica a meseros; al cambiar a otro rol se limpia
+            if (this.rol != Roles.MESERO) {
+                this.seccion = null;
+            }
+        }
+        if (datos.seccion() != null && this.rol == Roles.MESERO) {
+            this.seccion = datos.seccion();
+        }
     }
 
     public void eliminarUsuario(Long id) {
