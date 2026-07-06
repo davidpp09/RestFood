@@ -17,6 +17,12 @@ public class AutenticacionService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         // 4. Aquí es donde ocurre la magia de búsqueda
-        return repository.findByEmail(username);
+        var usuario = repository.findByEmail(username);
+        if (usuario == null) {
+            // El contrato de UserDetailsService exige lanzar la excepción, no devolver null.
+            // Spring la convierte en BadCredentialsException → 401 (no revela si el email existe).
+            throw new UsernameNotFoundException("Usuario no encontrado: " + username);
+        }
+        return usuario;
     }
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -32,6 +33,11 @@ public class TratadorDeErrores {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity tratarErrorBadCredentials() {
         return ResponseEntity.status(401).body(new DatosRespuestaError("Credenciales inválidas. Por favor, verifica tu correo y contraseña."));
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity tratarErrorUsuarioDesactivado() {
+        return ResponseEntity.status(401).body(new DatosRespuestaError("Este usuario está desactivado. Contacta al administrador."));
     }
 
     @ExceptionHandler(Exception.class)
