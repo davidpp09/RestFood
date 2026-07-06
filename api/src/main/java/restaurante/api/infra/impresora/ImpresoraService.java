@@ -23,7 +23,10 @@ import java.util.stream.Collectors;
 @Service
 public class ImpresoraService {
 
+    // Valores homologados de categorias.impresora (2026-07-06). El ruteo es por
+    // coincidencia EXACTA: cualquier otro valor cae a COCINA_1 con aviso en el log.
     private static final String SIN_IMPRESION = "SIN_IMPRESION";
+    private static final String COCINA_1      = "COCINA_1";
     private static final String COCINA_2      = "COCINA_2";
 
     // Papel 80mm a fuente normal ≈ 48 columnas (58mm serían 32)
@@ -69,6 +72,12 @@ public class ImpresoraService {
 
         grupos.forEach((tipoImpresora, platillos) -> {
             boolean esCocina2 = COCINA_2.equals(tipoImpresora);
+            if (!esCocina2 && !COCINA_1.equals(tipoImpresora)) {
+                // Valor no homologado: se imprime en COCINA_1 para no perder la comanda,
+                // pero como grupo separado — corrige categorias.impresora cuanto antes.
+                System.err.println("🖨️⚠️ Valor de impresora desconocido: '" + tipoImpresora
+                        + "' — homologa categorias.impresora a COCINA_1 / COCINA_2 / SIN_IMPRESION. Imprimiendo en COCINA_1.");
+            }
             String nombreImpresora = esCocina2 ? nombreCocina2 : nombreCocina1;
             String ip = esCocina2 ? ipCocina2 : ipCocina1;
             int puerto = esCocina2 ? puertoCocina2 : puertoCocina1;
