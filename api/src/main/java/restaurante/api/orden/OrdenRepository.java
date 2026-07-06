@@ -24,6 +24,10 @@ public interface OrdenRepository extends JpaRepository<Orden, Long> {
 
     List<Orden> findByMesaAndEstatus(Mesa mesa, Estatus estatus);
 
+    // Órdenes "vivas" de una mesa (PREPARANDO o SERVIDO): una orden servida pero
+    // aún no pagada sigue ocupando la mesa.
+    List<Orden> findByMesaAndEstatusIn(Mesa mesa, List<Estatus> estatus);
+
     @Query("SELECT o FROM orden o WHERE o.mesa.id_mesas = :id_mesa AND o.estatus = 'PREPARANDO'")
     Optional<Orden> findActivaByMesa(Long id_mesa);
 

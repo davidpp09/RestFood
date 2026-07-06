@@ -80,7 +80,10 @@ public class OrdenService {
             if (datos.id_mesa() == null) {
                 throw new ValidacionException("Debes indicar el número de mesa.");
             }
-            var mesa = mesaRepository.getReferenceById(datos.id_mesa());
+            // Lock pesimista: si dos meseros abren la misma mesa a la vez, el segundo
+            // espera y encuentra la mesa ya OCUPADA (abrirMesa lanza la validación).
+            var mesa = mesaRepository.findByIdConBloqueo(datos.id_mesa())
+                    .orElseThrow(() -> new RecursoNoEncontradoException("Mesa no encontrada"));
             mesa.abrirMesa();
             Orden ordenGuardada = ordenRepository.save(new Orden(mesa, usuario, datos.tipo(), datos.servicio(), numeroComanda));
 
@@ -227,7 +230,10 @@ public class OrdenService {
 
     @Transactional
     public DatosRespuestaCuenta darCuenta(Long id) {
-        var orden = ordenRepository.findById(id)
+        // Lock pesimista: dos "Cerrar y Cobrar" simultáneos sobre la misma orden se
+        // serializan; el segundo ve la orden ya PAGADA (finalizar lanza la validación)
+        // en vez de cobrar e imprimir dos veces.
+        var orden = ordenRepository.findByIdConBloqueo(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Orden no encontrada"));
 
         // VALIDACIÓN: Solo el mesero que abrió la orden o un ADMIN/DEV pueden cerrarla
@@ -243,13 +249,17 @@ public class OrdenService {
 
         List<Orden> otrasOrdenes = new ArrayList<>();
         if (orden.getMesa() != null) {
-            var ordenesActivas = ordenRepository.findByMesaAndEstatus(orden.getMesa(), Estatus.PREPARANDO);
+            // PREPARANDO y SERVIDO: una orden servida pero sin pagar sigue ocupando la mesa
+            var ordenesActivas = ordenRepository.findByMesaAndEstatusIn(
+                    orden.getMesa(), List.of(Estatus.PREPARANDO, Estatus.SERVIDO));
             otrasOrdenes = ordenesActivas.stream().filter(o -> !o.getId_ordenes().equals(id)).toList();
         }
 
         // --- Todas las escrituras DB primero ---
         orden.finalizar(otrasOrdenes);
-        if (orden.getMesa() != null) orden.getMesa().liberar();
+        // Liberar la mesa SOLO si no queda ninguna otra orden viva en ella; antes se
+        // liberaba siempre y una mesa podía quedar LIBRE con una orden vieja aún abierta.
+        if (orden.getMesa() != null && otrasOrdenes.isEmpty()) orden.getMesa().liberar();
         eventoOrdenRepository.save(new EventoOrden(orden, usuarioAutenticado, TipoEvento.MESA_CERRADA));
 
         // --- Construcción del ticket ---
@@ -286,7 +296,8 @@ public class OrdenService {
 
     @Transactional
     public void cancelarOrden(Long id) {
-        var orden = ordenRepository.findById(id)
+        // Mismo lock que darCuenta: cancelaciones dobles simultáneas se serializan
+        var orden = ordenRepository.findByIdConBloqueo(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Orden no encontrada"));
 
         var usuarioAutenticado = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
