@@ -134,16 +134,11 @@ public class ImpresoraService {
         }
     }
 
-    // Comanda de cocina compacta (2026-07-16): LOZA con su mesa / LLEVAR, quién la
-    // levantó, y cada platillo con su estado (NUEVO/MODIFICADO/CANCELADO) en la
-    // misma línea; los comentarios con su propio renglón y aire entre platillos.
+    // Comanda de cocina compacta (2026-07-16): mismo aire que el ticket de cuenta —
+    // LOZA/LLEVAR con su comanda, quién la levantó, y cada platillo en una línea
+    // con su estado (NUEVO/MODIFICADO/CANCELADO); comentarios en renglón propio.
     private void escribirTicket(EscPos escpos, DatosTicketCocina ticket,
                                 List<DatosPlatilloTicket> platillos) throws Exception {
-        Style titulo = new Style()
-                .setFontSize(Style.FontSize._2, Style.FontSize._2)
-                .setJustification(EscPosConst.Justification.Center)
-                .setBold(true);
-
         Style subtitulo = new Style()
                 .setFontSize(Style.FontSize._1, Style.FontSize._1)
                 .setJustification(EscPosConst.Justification.Center)
@@ -158,19 +153,15 @@ public class ImpresoraService {
 
         String rayita = "-".repeat(48);
 
-        // Cabecera: identidad de la orden y quién la levantó
-        if (ticket.tipo() == Tipo.LOZA && ticket.numero_mesa() != null) {
-            // numero_mesa es el número visible de la mesa (mesas.numero), no el id interno
-            escpos.writeLF(titulo, "MESA " + ticket.numero_mesa());
+        // Cabecera: tipo + comanda y quién la levantó
+        if (ticket.tipo() == Tipo.LOZA) {
             escpos.writeLF(subtitulo, "LOZA - Comanda #" + ticket.numero_comanda());
             escpos.writeLF(normal, "Mesera: " + ticket.nombre());
         } else {
-            escpos.writeLF(titulo, "LLEVAR");
-            escpos.writeLF(subtitulo, "Comanda #" + ticket.numero_comanda());
+            escpos.writeLF(subtitulo, "LLEVAR - Comanda #" + ticket.numero_comanda());
             escpos.writeLF(normal, "Repartidor: " + ticket.nombre());
         }
         escpos.writeLF(rayita);
-        escpos.feed(1);
 
         // Platillos: cantidad + nombre con su estado en la misma línea
         for (DatosPlatilloTicket p : platillos) {
@@ -180,7 +171,6 @@ public class ImpresoraService {
             if (p.comentarios() != null && !p.comentarios().isBlank()) {
                 escpos.writeLF(normal, "   * " + p.comentarios() + " *");
             }
-            escpos.feed(1);
         }
 
         escpos.writeLF(rayita);
@@ -321,9 +311,10 @@ public class ImpresoraService {
         if (!cabecera.isEmpty()) {
             escpos.writeLF(centro, cabecera);
         }
-        // Solo PARA LLEVAR necesita identificarse con su comanda
         if (ticket.numeroMesa() == null) {
             escpos.writeLF(centro, "PARA LLEVAR - Comanda #" + ticket.numero_comanda());
+        } else {
+            escpos.writeLF(centro, "Comanda #" + ticket.numero_comanda());
         }
         escpos.writeLF(rayita);
 
