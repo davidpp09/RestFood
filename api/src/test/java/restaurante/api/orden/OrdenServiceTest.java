@@ -36,7 +36,7 @@ class OrdenServiceTest {
     // 🧪 TEST 1: La orden ya está pagada
     @Test
     void enviarOrden_OrdenPagada_LanzaExcepcion() {
-        var datos = new restaurante.api.ordenDetalle.DatosSincronizarComanda(1L, 1L, List.of());
+        var datos = new restaurante.api.ordenDetalle.DatosSincronizarComanda(1L, 1L, List.of(), null);
         var ordenFalsa = Mockito.mock(Orden.class);
 
         when(ordenFalsa.getEstatus()).thenReturn(Estatus.PAGADA);
@@ -65,7 +65,7 @@ class OrdenServiceTest {
     @Test
     void enviarOrden_UsuarioDiferente_LanzaExcepcion() {
         // CORRECCIÓN AQUÍ: (id_usuario = 99L, id_orden = 1L)
-        var datos = new restaurante.api.ordenDetalle.DatosSincronizarComanda(99L, 1L, List.of());
+        var datos = new restaurante.api.ordenDetalle.DatosSincronizarComanda(99L, 1L, List.of(), null);
         var ordenFalsa = Mockito.mock(Orden.class);
         var usuarioDuenio = Mockito.mock(Usuario.class);
 
