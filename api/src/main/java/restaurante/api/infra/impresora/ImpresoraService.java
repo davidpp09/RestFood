@@ -121,7 +121,7 @@ public class ImpresoraService {
 
             escribirTicket(escpos, ticket, platillos);
 
-            escpos.feed(5);
+            escpos.feed(4);
             escpos.cut(EscPos.CutMode.FULL);
             escpos.close();
 
@@ -134,6 +134,9 @@ public class ImpresoraService {
         }
     }
 
+    // Comanda de cocina compacta (2026-07-16): LOZA con su mesa / LLEVAR, quién la
+    // levantó, y cada platillo con su estado (NUEVO/MODIFICADO/CANCELADO) en la
+    // misma línea; los comentarios con su propio renglón y aire entre platillos.
     private void escribirTicket(EscPos escpos, DatosTicketCocina ticket,
                                 List<DatosPlatilloTicket> platillos) throws Exception {
         Style titulo = new Style()
@@ -153,43 +156,34 @@ public class ImpresoraService {
                 .setFontSize(Style.FontSize._1, Style.FontSize._1)
                 .setBold(true);
 
-        Style accionStyle = new Style()
-                .setFontSize(Style.FontSize._1, Style.FontSize._1)
-                .setJustification(EscPosConst.Justification.Right);
+        String rayita = "-".repeat(48);
 
-        // Cabecera
-        escpos.writeLF(titulo, "NUEVA ORDEN");
-        escpos.writeLF(subtitulo, "COMANDA #" + ticket.numero_comanda());
-        escpos.writeLF(SEPARADOR);
-
+        // Cabecera: identidad de la orden y quién la levantó
         if (ticket.tipo() == Tipo.LOZA && ticket.numero_mesa() != null) {
             // numero_mesa es el número visible de la mesa (mesas.numero), no el id interno
             escpos.writeLF(titulo, "MESA " + ticket.numero_mesa());
+            escpos.writeLF(subtitulo, "LOZA - Comanda #" + ticket.numero_comanda());
+            escpos.writeLF(normal, "Mesera: " + ticket.nombre());
         } else {
-            escpos.writeLF(titulo, "PARA LLEVAR");
+            escpos.writeLF(titulo, "LLEVAR");
+            escpos.writeLF(subtitulo, "Comanda #" + ticket.numero_comanda());
+            escpos.writeLF(normal, "Repartidor: " + ticket.nombre());
         }
-
-        escpos.writeLF("Mesero: " + ticket.nombre());
-        escpos.writeLF(SEPARADOR);
+        escpos.writeLF(rayita);
         escpos.feed(1);
 
-        // Platillos del grupo
+        // Platillos: cantidad + nombre con su estado en la misma línea
         for (DatosPlatilloTicket p : platillos) {
-            escpos.writeLF(negrita, p.cantidad() + "x " + p.nombre());
+            String accion = p.accion() == null ? "" : p.accion().replaceAll("[^a-zA-Z ]", "").trim();
+            escpos.writeLF(negrita, filaTicket(p.cantidad() + "x " + p.nombre(), accion));
 
             if (p.comentarios() != null && !p.comentarios().isBlank()) {
-                escpos.writeLF(normal, "  *" + p.comentarios() + "*");
-            }
-
-            if (p.accion() != null && !p.accion().isEmpty()) {
-                String accionLimpia = p.accion().replaceAll("[^a-zA-Z ]", "").trim();
-                escpos.writeLF(accionStyle, "[" + accionLimpia + "]");
+                escpos.writeLF(normal, "   * " + p.comentarios() + " *");
             }
             escpos.feed(1);
         }
 
-        escpos.writeLF(SEPARADOR);
-        escpos.writeLF(subtitulo, "-- FIN ORDEN --");
+        escpos.writeLF(rayita);
     }
 
     // ─── Talón de tiempos (PARA LLEVAR) ──────────────────────────────────────────
@@ -248,7 +242,7 @@ public class ImpresoraService {
             escpos.writeLF(SEPARADOR);
             escpos.writeLF(subtitulo, "-- FIN TIEMPOS --");
 
-            escpos.feed(5);
+            escpos.feed(4);
             escpos.cut(EscPos.CutMode.FULL);
             escpos.close();
 
@@ -281,7 +275,7 @@ public class ImpresoraService {
             escribirTicketCliente(escpos, ticket);
 
             // Mínimo para que el texto libre la cuchilla sin desperdiciar papel
-            escpos.feed(3);
+            escpos.feed(4);
             escpos.cut(EscPos.CutMode.FULL);
             escpos.close();
 
@@ -293,11 +287,24 @@ public class ImpresoraService {
         }
     }
 
-    /** Fila de 48 columnas: "2x Nombre.....$50.00" (cantidad, producto e importe en la misma línea). */
-    private static String filaTicket(String izquierda, String importe) {
-        int anchoIzq = 48 - importe.length() - 1;
+    /** Fila de 48 columnas con texto a la izquierda y algo alineado a la derecha. */
+    private static String filaTicket(String izquierda, String derecha) {
+        int anchoIzq = 48 - derecha.length() - 1;
         if (izquierda.length() > anchoIzq) izquierda = izquierda.substring(0, anchoIzq);
-        return String.format("%-" + anchoIzq + "s %s", izquierda, importe);
+        return String.format("%-" + anchoIzq + "s %s", izquierda, derecha);
+    }
+
+    /** Fila de 48 columnas: producto + precio unitario + importe (32+8+8). */
+    private static String filaTicket3(String izquierda, String unitario, String importe) {
+        if (izquierda.length() > 32) izquierda = izquierda.substring(0, 32);
+        return String.format("%-32s%8s%8s", izquierda, unitario, importe);
+    }
+
+    /** Dinero sin decimales cuando es cantidad exacta ($50); con centavos solo si los hay. */
+    private static String dinero(java.math.BigDecimal v) {
+        if (v == null) return "$0";
+        var limpio = v.stripTrailingZeros();
+        return limpio.scale() <= 0 ? "$" + limpio.toPlainString() : String.format("$%.2f", v);
     }
 
     // Ticket compacto (2026-07-16, pedido de David): mínimo papel — encabezado de
@@ -337,15 +344,17 @@ public class ImpresoraService {
         }
         escpos.writeLF(rayita);
 
-        // Platillos: cantidad, nombre e importe en la misma línea
+        // Platillos: cantidad y nombre + precio unitario + importe en la misma línea
         for (DatosDetalleRespuesta p : ticket.platillos()) {
-            escpos.writeLF(normal, filaTicket(
+            escpos.writeLF(normal, filaTicket3(
                     p.cantidad() + "x " + p.nombre_producto(),
-                    String.format("$%.2f", p.subtotal())));
+                    dinero(p.precio_unitario()),
+                    dinero(p.subtotal())));
         }
 
         escpos.writeLF(rayita);
-        escpos.writeLF(negrita, filaTicket("TOTAL", String.format("$%.2f", ticket.total())));
+        escpos.writeLF(negrita, filaTicket("TOTAL", dinero(ticket.total())));
+        escpos.feed(1);
         escpos.writeLF(centro, "!Vuelva pronto!");
     }
 }
