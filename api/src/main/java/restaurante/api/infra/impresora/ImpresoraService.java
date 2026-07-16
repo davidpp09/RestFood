@@ -53,6 +53,13 @@ public class ImpresoraService {
     @Value("${impresora.tickets.puerto:9100}")
     private int puertoTickets;
 
+    @Value("${impresora.meseras.nombre}")
+    private String nombreMeseras;
+    @Value("${impresora.meseras.ip:}")
+    private String ipMeseras;
+    @Value("${impresora.meseras.puerto:9100}")
+    private int puertoMeseras;
+
     /**
      * Punto de entrada. Agrupa los platillos del ticket por su impresora destino
      * y envía un ticket separado a cada una. Los platillos con "SIN_IMPRESION" (o null)
@@ -188,10 +195,16 @@ public class ImpresoraService {
 
     @Async
     public void imprimirTicketCliente(DatosRespuestaCuenta ticket) {
+        // Con mesa -> impresora de meseras (ticket final de la mesa).
+        // Sin mesa (LLEVAR/entrega) -> impresora de tickets de la zona de repartidores.
+        boolean esMesa = ticket.numeroMesa() != null;
+        String nombre = esMesa ? nombreMeseras : nombreTickets;
+        String ip     = esMesa ? ipMeseras     : ipTickets;
+        int puerto    = esMesa ? puertoMeseras : puertoTickets;
         try {
-            OutputStream salida = abrirConexion(nombreTickets, ipTickets, puertoTickets);
+            OutputStream salida = abrirConexion(nombre, ip, puerto);
             if (salida == null) {
-                System.err.println("🖨️❌ No se encontró la impresora de tickets: " + nombreTickets);
+                System.err.println("🖨️❌ No se encontró la impresora de " + (esMesa ? "meseras" : "tickets") + ": " + nombre);
                 return;
             }
 
@@ -203,7 +216,7 @@ public class ImpresoraService {
             escpos.cut(EscPos.CutMode.FULL);
             escpos.close();
 
-            System.out.println("🖨️✅ Ticket de cliente impreso en: " + nombreTickets + " (Orden #" + ticket.id_orden() + ")");
+            System.out.println("🖨️✅ Ticket de cliente impreso en: " + nombre + " (Orden #" + ticket.id_orden() + ")");
 
         } catch (Exception e) {
             System.err.println("🖨️❌ Error al imprimir ticket de cliente: " + e.getMessage());
