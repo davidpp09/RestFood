@@ -153,13 +153,14 @@ public class ImpresoraService {
 
         String rayita = "-".repeat(48);
 
-        // Cabecera: tipo + comanda y quién la levantó
+        // Cabecera: tipo + comanda, quién la levantó y hora de envío a cocina
+        String horaEnvio = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
         if (ticket.tipo() == Tipo.LOZA) {
             escpos.writeLF(subtitulo, "LOZA - Comanda #" + ticket.numero_comanda());
-            escpos.writeLF(normal, "Mesera: " + ticket.nombre());
+            escpos.writeLF(normal, filaTicket("Mesera: " + ticket.nombre(), horaEnvio));
         } else {
             escpos.writeLF(subtitulo, "LLEVAR - Comanda #" + ticket.numero_comanda());
-            escpos.writeLF(normal, "Repartidor: " + ticket.nombre());
+            escpos.writeLF(normal, filaTicket("Repartidor: " + ticket.nombre(), horaEnvio));
         }
         escpos.writeLF(rayita);
 
@@ -311,10 +312,12 @@ public class ImpresoraService {
         if (!cabecera.isEmpty()) {
             escpos.writeLF(centro, cabecera);
         }
+        String horaTicket = (ticket.fechaCierre() != null ? ticket.fechaCierre().toLocalTime() : java.time.LocalTime.now())
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
         if (ticket.numeroMesa() == null) {
-            escpos.writeLF(centro, "PARA LLEVAR - Comanda #" + ticket.numero_comanda());
+            escpos.writeLF(centro, "PARA LLEVAR - Comanda #" + ticket.numero_comanda() + " - " + horaTicket);
         } else {
-            escpos.writeLF(centro, "Comanda #" + ticket.numero_comanda());
+            escpos.writeLF(centro, "Comanda #" + ticket.numero_comanda() + " - " + horaTicket);
         }
         escpos.writeLF(rayita);
 
