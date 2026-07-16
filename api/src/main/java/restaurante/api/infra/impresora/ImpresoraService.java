@@ -280,7 +280,8 @@ public class ImpresoraService {
 
             escribirTicketCliente(escpos, ticket);
 
-            escpos.feed(5);
+            // Mínimo para que el texto libre la cuchilla sin desperdiciar papel
+            escpos.feed(3);
             escpos.cut(EscPos.CutMode.FULL);
             escpos.close();
 
@@ -292,9 +293,18 @@ public class ImpresoraService {
         }
     }
 
+    /** Fila de 48 columnas: "2x Nombre.....$50.00" (cantidad, producto e importe en la misma línea). */
+    private static String filaTicket(String izquierda, String importe) {
+        int anchoIzq = 48 - importe.length() - 1;
+        if (izquierda.length() > anchoIzq) izquierda = izquierda.substring(0, anchoIzq);
+        return String.format("%-" + anchoIzq + "s %s", izquierda, importe);
+    }
+
+    // Ticket compacto (2026-07-16, pedido de David): mínimo papel — encabezado de
+    // una línea, cada platillo en una sola línea con su importe, total y despedida.
     private void escribirTicketCliente(EscPos escpos, DatosRespuestaCuenta ticket) throws Exception {
-        Style titulo = new Style()
-                .setFontSize(Style.FontSize._2, Style.FontSize._2)
+        Style centroNegrita = new Style()
+                .setFontSize(Style.FontSize._1, Style.FontSize._1)
                 .setJustification(EscPosConst.Justification.Center)
                 .setBold(true);
 
@@ -309,59 +319,33 @@ public class ImpresoraService {
                 .setFontSize(Style.FontSize._1, Style.FontSize._1)
                 .setBold(true);
 
-        Style derecha = new Style()
-                .setFontSize(Style.FontSize._1, Style.FontSize._1)
-                .setJustification(EscPosConst.Justification.Right);
+        String rayita = "-".repeat(48);
 
-        Style totalStyle = new Style()
-                .setFontSize(Style.FontSize._2, Style.FontSize._2)
-                .setBold(true);
-
-        // Cabecera
-        escpos.writeLF(titulo, "RESTFOOD");
-        escpos.writeLF(centro, "Ticket de Venta");
-        escpos.writeLF(SEPARADOR);
-
-        // Datos de la orden
-        escpos.writeLF(normal, "Orden  : #" + ticket.id_orden());
-        escpos.writeLF(normal, "Comanda: #" + ticket.numero_comanda());
-        if (ticket.numeroMesa() != null) {
-            escpos.writeLF(normal, "Mesa   : " + ticket.numeroMesa());
-        } else {
-            escpos.writeLF(normal, "Tipo   : Para llevar");
+        // Cabecera: RESTFOOD + mesera y servicio en una sola línea
+        escpos.writeLF(centroNegrita, "RESTFOOD");
+        String servicio = "COMIDA".equalsIgnoreCase(ticket.servicio()) ? "Comida"
+                : "DESAYUNO".equalsIgnoreCase(ticket.servicio()) ? "Desayuno"
+                : ticket.servicio() != null ? ticket.servicio() : "";
+        String quien = ticket.nombreMesero() != null ? ticket.nombreMesero() : "";
+        String cabecera = (quien + (servicio.isEmpty() ? "" : " - " + servicio)).trim();
+        if (!cabecera.isEmpty()) {
+            escpos.writeLF(centro, cabecera);
         }
-        if (ticket.fechaCierre() != null) {
-            escpos.writeLF(normal, "Fecha  : " + ticket.fechaCierre().toLocalDate());
-            escpos.writeLF(normal, "Hora   : " + ticket.fechaCierre().toLocalTime().withNano(0));
+        // Solo PARA LLEVAR necesita identificarse con su comanda
+        if (ticket.numeroMesa() == null) {
+            escpos.writeLF(centro, "PARA LLEVAR - Comanda #" + ticket.numero_comanda());
         }
-        escpos.writeLF(SEPARADOR);
-        escpos.writeLF(negrita, "CONSUMO");
-        escpos.writeLF(SEPARADOR);
-        escpos.feed(1);
+        escpos.writeLF(rayita);
 
-        // Platillos
+        // Platillos: cantidad, nombre e importe en la misma línea
         for (DatosDetalleRespuesta p : ticket.platillos()) {
-            // Nombre + cantidad
-            escpos.writeLF(negrita, p.cantidad() + "x " + p.nombre_producto());
-            if (p.comentarios() != null && !p.comentarios().isBlank()) {
-                escpos.writeLF(normal, "  (" + p.comentarios() + ")");
-            }
-            // Precio unitario izq, subtotal der
-            String precioFila = "$" + p.precio_unitario() + "    $" + p.subtotal();
-            escpos.writeLF(derecha, precioFila);
-            escpos.feed(1);
+            escpos.writeLF(normal, filaTicket(
+                    p.cantidad() + "x " + p.nombre_producto(),
+                    String.format("$%.2f", p.subtotal())));
         }
 
-        escpos.writeLF(SEPARADOR);
-        escpos.writeLF(normal, "");
-
-        // Total
-        escpos.writeLF(negrita, "TOTAL:");
-        escpos.writeLF(totalStyle, "$" + ticket.total());
-
-        escpos.writeLF(SEPARADOR);
-        escpos.feed(1);
-        escpos.writeLF(centro, "!Gracias por su visita!");
-        escpos.writeLF(centro, "Vuelva pronto :)");
+        escpos.writeLF(rayita);
+        escpos.writeLF(negrita, filaTicket("TOTAL", String.format("$%.2f", ticket.total())));
+        escpos.writeLF(centro, "!Vuelva pronto!");
     }
 }

@@ -15,5 +15,7 @@ public record DatosRespuestaCuenta(
         LocalDateTime fechaCierre,
         List<DatosDetalleRespuesta> platillos,
         BigDecimal total,
-        String estatus
+        String estatus,
+        String nombreMesero,
+        String servicio // COMIDA | DESAYUNO
 ) {}

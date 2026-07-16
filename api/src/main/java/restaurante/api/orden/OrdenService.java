@@ -283,7 +283,9 @@ public class OrdenService {
                 orden.getFechaCierre(),
                 platillosMapeados,
                 orden.getTotal(),
-                orden.getEstatus().toString()
+                orden.getEstatus().toString(),
+                orden.getUsuario().getNombre(),
+                orden.getServicio() != null ? orden.getServicio().toString() : null
         );
 
         // --- WebSocket: todos después de confirmar DB ---
@@ -388,7 +390,9 @@ public class OrdenService {
                 orden.getFechaCierre(),
                 platillosMapeados,
                 orden.getTotal(),
-                orden.getEstatus().toString()
+                orden.getEstatus().toString(),
+                orden.getUsuario().getNombre(),
+                orden.getServicio() != null ? orden.getServicio().toString() : null
         );
 
         // Re-enviar por WebSocket al frontend que esté escuchando /topic/tickets
