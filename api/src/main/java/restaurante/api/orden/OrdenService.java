@@ -226,6 +226,14 @@ public class OrdenService {
         // Enviar impresión física
         impresoraService.imprimirComandaCocina(ticketFinal);
 
+        // PARA LLEVAR con tiempos marcados → talón de tiempos en la impresora
+        // de la zona de repartidores (solo si esta sincronización envió algo nuevo)
+        if (Tipo.LLEVAR.equals(orden.getTipo()) && datos.tiempos() != null
+                && datos.tiempos().tieneAlguno() && !ticketCocina.isEmpty()) {
+            impresoraService.imprimirTiemposLlevar(
+                    orden.getNumero_comanda(), orden.getUsuario().getNombre(), datos.tiempos());
+        }
+
         return respuesta;
     }
 

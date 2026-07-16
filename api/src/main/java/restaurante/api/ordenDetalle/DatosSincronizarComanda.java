@@ -17,7 +17,10 @@ public record DatosSincronizarComanda(
 
         @NotNull
         @Valid
-        List<DatosPlatilloLote> platillos
+        List<DatosPlatilloLote> platillos,
+
+        // Opcional — solo lo manda el panel de entregas (PARA LLEVAR)
+        DatosTiemposComanda tiempos
 ) {
 
 }

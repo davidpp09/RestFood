@@ -13,6 +13,7 @@ import restaurante.api.orden.DatosRespuestaCuenta;
 import restaurante.api.orden.DatosTicketCocina;
 import restaurante.api.orden.Tipo;
 import restaurante.api.ordenDetalle.DatosDetalleRespuesta;
+import restaurante.api.ordenDetalle.DatosTiemposComanda;
 
 import javax.print.PrintService;
 import java.io.OutputStream;
@@ -189,6 +190,73 @@ public class ImpresoraService {
 
         escpos.writeLF(SEPARADOR);
         escpos.writeLF(subtitulo, "-- FIN ORDEN --");
+    }
+
+    // ─── Talón de tiempos (PARA LLEVAR) ──────────────────────────────────────────
+
+    /**
+     * Imprime en la impresora de la zona de repartidores el talón con los tiempos
+     * marcados en una orden PARA LLEVAR (consomé / sopa-crema / arroz / espaguetti),
+     * para que el repartidor sepa qué empacar de cada tiempo.
+     */
+    @Async
+    public void imprimirTiemposLlevar(Integer numeroComanda, String nombre, DatosTiemposComanda tiempos) {
+        try {
+            OutputStream salida = abrirConexion(nombreTickets, ipTickets, puertoTickets);
+            if (salida == null) {
+                System.err.println("🖨️❌ No se encontró la impresora de tickets (tiempos): " + nombreTickets);
+                return;
+            }
+
+            EscPos escpos = new EscPos(salida);
+
+            Style titulo = new Style()
+                    .setFontSize(Style.FontSize._2, Style.FontSize._2)
+                    .setJustification(EscPosConst.Justification.Center)
+                    .setBold(true);
+            Style subtitulo = new Style()
+                    .setFontSize(Style.FontSize._1, Style.FontSize._1)
+                    .setJustification(EscPosConst.Justification.Center)
+                    .setBold(true);
+            Style negrita = new Style()
+                    .setFontSize(Style.FontSize._1, Style.FontSize._1)
+                    .setBold(true);
+            Style grande = new Style()
+                    .setFontSize(Style.FontSize._2, Style.FontSize._2)
+                    .setBold(true);
+
+            escpos.writeLF(titulo, "TIEMPOS");
+            escpos.writeLF(subtitulo, "COMANDA #" + numeroComanda);
+            escpos.writeLF(titulo, "PARA LLEVAR");
+            escpos.writeLF("Repartidor: " + nombre);
+            escpos.writeLF(SEPARADOR);
+            escpos.feed(1);
+
+            if (tiempos.consomeSeguro() > 0 || tiempos.sopaCremaSegura() > 0) {
+                escpos.writeLF(negrita, "1ER TIEMPO");
+                if (tiempos.consomeSeguro() > 0)   escpos.writeLF(grande, tiempos.consomeSeguro() + "x Consome");
+                if (tiempos.sopaCremaSegura() > 0) escpos.writeLF(grande, tiempos.sopaCremaSegura() + "x Sopa/Crema");
+                escpos.feed(1);
+            }
+            if (tiempos.arrozSeguro() > 0 || tiempos.espaguettiSeguro() > 0) {
+                escpos.writeLF(negrita, "2DO TIEMPO");
+                if (tiempos.arrozSeguro() > 0)      escpos.writeLF(grande, tiempos.arrozSeguro() + "x Arroz");
+                if (tiempos.espaguettiSeguro() > 0) escpos.writeLF(grande, tiempos.espaguettiSeguro() + "x Espaguetti");
+                escpos.feed(1);
+            }
+
+            escpos.writeLF(SEPARADOR);
+            escpos.writeLF(subtitulo, "-- FIN TIEMPOS --");
+
+            escpos.feed(5);
+            escpos.cut(EscPos.CutMode.FULL);
+            escpos.close();
+
+            System.out.println("🖨️✅ Talón de tiempos impreso en: " + nombreTickets + " (Comanda #" + numeroComanda + ")");
+        } catch (Exception e) {
+            System.err.println("🖨️❌ Error al imprimir talón de tiempos: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     // ─── Ticket de cliente ───────────────────────────────────────────────────────
