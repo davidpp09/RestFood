@@ -73,7 +73,7 @@ public class OrdenService {
 
         LocalDateTime inicioDia = LocalDate.now().atStartOfDay();
         LocalDateTime finDia    = LocalDate.now().atTime(LocalTime.MAX);
-        int numeroComanda = ordenRepository.countByUsuarioIdAndFechaBetween(
+        int numeroComanda = ordenRepository.maxNumeroComandaByUsuarioIdAndFechaBetween(
                 usuario.getId_usuarios(), inicioDia, finDia).intValue() + 1;
 
         if (conMesa) {

@@ -33,13 +33,16 @@ public interface OrdenRepository extends JpaRepository<Orden, Long> {
 
     List<Orden> findByEstatus(Estatus estatus);
 
-    @Query("SELECT o FROM orden o WHERE o.tipo = :tipo AND o.fecha_apertura BETWEEN :inicio AND :fin")
+    // Las CANCELADAS no cuentan como entregas del día
+    @Query("SELECT o FROM orden o WHERE o.tipo = :tipo AND o.fecha_apertura BETWEEN :inicio AND :fin AND o.estatus <> restaurante.api.orden.Estatus.CANCELADA")
     List<Orden> findEntregasDelDia(@Param("tipo") Tipo tipo,
                                    @Param("inicio") LocalDateTime inicio,
                                    @Param("fin") LocalDateTime fin);
 
-    @Query("SELECT COUNT(o) FROM orden o WHERE o.usuario.id_usuarios = :idUsuario AND o.fecha_apertura BETWEEN :inicio AND :fin")
-    Long countByUsuarioIdAndFechaBetween(@Param("idUsuario") Long idUsuario,
-                                         @Param("inicio") LocalDateTime inicio,
-                                         @Param("fin") LocalDateTime fin);
+    // Siguiente número de comanda = MAX+1 (no COUNT+1: borrar una orden de en medio
+    // del día haría repetir números). Las CANCELADAS no consumen número.
+    @Query("SELECT COALESCE(MAX(o.numero_comanda), 0) FROM orden o WHERE o.usuario.id_usuarios = :idUsuario AND o.fecha_apertura BETWEEN :inicio AND :fin AND o.estatus <> restaurante.api.orden.Estatus.CANCELADA")
+    Long maxNumeroComandaByUsuarioIdAndFechaBetween(@Param("idUsuario") Long idUsuario,
+                                                    @Param("inicio") LocalDateTime inicio,
+                                                    @Param("fin") LocalDateTime fin);
 }
