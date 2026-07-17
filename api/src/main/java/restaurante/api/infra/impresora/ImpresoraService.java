@@ -147,8 +147,10 @@ public class ImpresoraService {
         Style normal = new Style()
                 .setFontSize(Style.FontSize._1, Style.FontSize._1);
 
-        Style negrita = new Style()
-                .setFontSize(Style.FontSize._1, Style.FontSize._1)
+        // Platillos en doble ancho y alto (pedido de David 2026-07-17) — a este
+        // tamaño solo caben 24 columnas por línea
+        Style platilloGrande = new Style()
+                .setFontSize(Style.FontSize._2, Style.FontSize._2)
                 .setBold(true);
 
         String rayita = "-".repeat(48);
@@ -164,10 +166,16 @@ public class ImpresoraService {
         }
         escpos.writeLF(rayita);
 
-        // Platillos: cantidad + nombre con su estado en la misma línea
+        // Platillos: cantidad + nombre en grande (envuelto a 24 columnas sin cortar
+        // palabras); el estado va en su propio renglón normal, alineado a la derecha
         for (DatosPlatilloTicket p : platillos) {
             String accion = p.accion() == null ? "" : p.accion().replaceAll("[^a-zA-Z ]", "").trim();
-            escpos.writeLF(negrita, filaTicket(p.cantidad() + "x " + p.nombre(), accion));
+            for (String linea : envolver(p.cantidad() + "x " + p.nombre(), 24)) {
+                escpos.writeLF(platilloGrande, linea);
+            }
+            if (!accion.isBlank()) {
+                escpos.writeLF(normal, filaTicket("", accion));
+            }
 
             if (p.comentarios() != null && !p.comentarios().isBlank()) {
                 escpos.writeLF(normal, "   * " + p.comentarios() + " *");
@@ -259,6 +267,24 @@ public class ImpresoraService {
             System.err.println("🖨️❌ Error al imprimir ticket de cliente: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /** Parte el texto en líneas de máximo {@code ancho} columnas sin cortar palabras. */
+    private static List<String> envolver(String texto, int ancho) {
+        var lineas = new java.util.ArrayList<String>();
+        var actual = new StringBuilder();
+        for (String palabra : texto.split(" ")) {
+            if (actual.length() == 0) {
+                actual.append(palabra);
+            } else if (actual.length() + 1 + palabra.length() <= ancho) {
+                actual.append(' ').append(palabra);
+            } else {
+                lineas.add(actual.toString());
+                actual = new StringBuilder(palabra);
+            }
+        }
+        if (actual.length() > 0) lineas.add(actual.toString());
+        return lineas;
     }
 
     /** Fila de 48 columnas con texto a la izquierda y algo alineado a la derecha. */
