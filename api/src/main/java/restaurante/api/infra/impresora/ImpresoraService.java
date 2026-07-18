@@ -139,13 +139,19 @@ public class ImpresoraService {
     // con su estado (NUEVO/MODIFICADO/CANCELADO); comentarios en renglón propio.
     private void escribirTicket(EscPos escpos, DatosTicketCocina ticket,
                                 List<DatosPlatilloTicket> platillos) throws Exception {
+        // Cabecera en doble ancho, alto normal (pedido de David 2026-07-18) — a
+        // doble ancho solo caben 24 columnas por línea
         Style subtitulo = new Style()
-                .setFontSize(Style.FontSize._1, Style.FontSize._1)
+                .setFontSize(Style.FontSize._2, Style.FontSize._1)
                 .setJustification(EscPosConst.Justification.Center)
                 .setBold(true);
 
         Style normal = new Style()
                 .setFontSize(Style.FontSize._1, Style.FontSize._1);
+
+        // Comentarios también en doble ancho, alto normal
+        Style comentario = new Style()
+                .setFontSize(Style.FontSize._2, Style.FontSize._1);
 
         // Platillos en doble ancho y alto (pedido de David 2026-07-17) — a este
         // tamaño solo caben 24 columnas por línea
@@ -178,7 +184,9 @@ public class ImpresoraService {
             }
 
             if (p.comentarios() != null && !p.comentarios().isBlank()) {
-                escpos.writeLF(normal, "   * " + p.comentarios() + " *");
+                for (String linea : envolver("* " + p.comentarios() + " *", 22)) {
+                    escpos.writeLF(comentario, "  " + linea);
+                }
             }
         }
 
