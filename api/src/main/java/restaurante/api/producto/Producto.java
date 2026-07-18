@@ -37,13 +37,13 @@ public class Producto {
     @JoinColumn(name = "id_categoria", nullable = false)
     private Categoria categoria;
 
-    public Producto(DatosRegistroProducto datosRegistroProducto) {
+    public Producto(DatosRegistroProducto datosRegistroProducto, Categoria categoria) {
         this.id_productos = null;
         this.nombre = datosRegistroProducto.nombre();
         this.precio_comida = datosRegistroProducto.precio_comida();
         this.precio_desayuno = datosRegistroProducto.precio_desayuno();
         this.disponibilidad = datosRegistroProducto.disponibilidad();
-        this.categoria = new Categoria(datosRegistroProducto.id_categoria());
+        this.categoria = categoria;
     }
 
     public void actualizar(DatosActualizacionProducto datos, Categoria categoriaCompleta) {

@@ -33,7 +33,8 @@ public class ProductosController {
     @Transactional
     @PreAuthorize("hasRole('DEV')")
     public ResponseEntity<DatosRespuestaProducto> registrar(@RequestBody @Valid DatosRegistroProducto datos, UriComponentsBuilder uriComponentsBuilder) {
-        Producto producto = repository.save(new Producto(datos));
+        Categoria categoria = categoriaRepository.findById(datos.id_categoria()).orElseThrow();
+        Producto producto = repository.save(new Producto(datos, categoria));
         URI url = uriComponentsBuilder.path("/productos/{id}").buildAndExpand(producto.getId_productos()).toUri();
         return ResponseEntity.created(url).body(new DatosRespuestaProducto(producto));
     }

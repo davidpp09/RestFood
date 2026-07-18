@@ -22,10 +22,6 @@ public class Categoria {
     private String impresora;
 
 
-    public Categoria(Long id_categorias) {
-        this.id_categorias = id_categorias;
-    }
-
     public Categoria(DatosRegistroCategoria datosRegistroCategoria) {
         this.id_categorias = null;
         this.nombre = datosRegistroCategoria.nombre();
