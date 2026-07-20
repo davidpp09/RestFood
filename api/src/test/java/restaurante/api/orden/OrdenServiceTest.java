@@ -1,11 +1,14 @@
 package restaurante.api.orden;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import restaurante.api.infra.errores.ValidacionException;
 import restaurante.api.mesa.Estado;
 import restaurante.api.mesa.Mesa;
@@ -33,6 +36,16 @@ class OrdenServiceTest {
     @InjectMocks
     private OrdenService ordenService;
 
+    @AfterEach
+    void limpiarContextoSeguridad() {
+        SecurityContextHolder.clearContext();
+    }
+
+    // El servicio siempre toma el usuario autenticado del SecurityContext, nunca del body
+    private void autenticarComo(Usuario usuario) {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(usuario, null));
+    }
+
     // 🧪 TEST 1: La orden ya está pagada
     @Test
     void enviarOrden_OrdenPagada_LanzaExcepcion() {
@@ -41,6 +54,7 @@ class OrdenServiceTest {
 
         when(ordenFalsa.getEstatus()).thenReturn(Estatus.PAGADA);
         when(ordenRepository.findByIdConBloqueo(1L)).thenReturn(Optional.of(ordenFalsa));
+        autenticarComo(Mockito.mock(Usuario.class));
 
         assertThrows(ValidacionException.class, () -> ordenService.enviarOrden(datos));
     }
@@ -50,13 +64,15 @@ class OrdenServiceTest {
     void abrirCuenta_MesaOcupada_LanzaExcepcion() {
         var datos = new DatosAbrirOrden(1L, 1L, Tipo.LOZA, Servicio.COMIDA);
         var usuarioFalso = Mockito.mock(Usuario.class);
-        var mesaFalsa = Mockito.mock(Mesa.class);
+        // Mesa real (no mock): abrirMesa() ya tiene la validación de OCUPADA como
+        // lógica de dominio real, un mock de Mesa no la ejecutaría.
+        var mesaOcupada = new Mesa(1L, "1", Estado.OCUPADA);
 
+        when(usuarioFalso.getId_usuarios()).thenReturn(1L);
         when(usuarioFalso.getRol()).thenReturn(Roles.MESERO);
-        when(usuarioRepository.getReferenceById(1L)).thenReturn(usuarioFalso);
-
-        when(mesaFalsa.getEstado()).thenReturn(Estado.OCUPADA);
-        when(mesaRepository.getReferenceById(1L)).thenReturn(mesaFalsa);
+        when(usuarioRepository.findByIdConBloqueo(1L)).thenReturn(Optional.of(usuarioFalso));
+        when(mesaRepository.findByIdConBloqueo(1L)).thenReturn(Optional.of(mesaOcupada));
+        autenticarComo(usuarioFalso);
 
         assertThrows(ValidacionException.class, () -> ordenService.abrirCuenta(datos));
     }
@@ -68,6 +84,7 @@ class OrdenServiceTest {
         var datos = new restaurante.api.ordenDetalle.DatosSincronizarComanda(99L, 1L, List.of(), null);
         var ordenFalsa = Mockito.mock(Orden.class);
         var usuarioDuenio = Mockito.mock(Usuario.class);
+        var usuarioAutenticado = Mockito.mock(Usuario.class);
 
         when(ordenFalsa.getEstatus()).thenReturn(Estatus.PREPARANDO);
 
@@ -77,6 +94,12 @@ class OrdenServiceTest {
 
         // Mockito ahora sí espera correctamente que busquen la orden 1L
         when(ordenRepository.findByIdConBloqueo(1L)).thenReturn(Optional.of(ordenFalsa));
+
+        // El usuario autenticado (token) es distinto al dueño de la orden y no es superusuario
+        when(usuarioAutenticado.getId_usuarios()).thenReturn(99L);
+        when(usuarioAutenticado.getRol()).thenReturn(Roles.MESERO);
+        when(usuarioRepository.getReferenceById(99L)).thenReturn(usuarioAutenticado);
+        autenticarComo(usuarioAutenticado);
 
         assertThrows(ValidacionException.class, () -> ordenService.enviarOrden(datos));
     }
