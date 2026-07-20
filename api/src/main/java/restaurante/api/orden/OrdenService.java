@@ -422,8 +422,15 @@ public class OrdenService {
     public List<DatosEntregaHoy> obtenerEntregasHoy() {
         LocalDateTime inicio = LocalDate.now().atStartOfDay();
         LocalDateTime fin    = LocalDate.now().atTime(LocalTime.MAX);
-        return ordenRepository.findEntregasDelDia(Tipo.LLEVAR, inicio, fin)
-                .stream()
+
+        // Un REPARTIDOR solo ve sus propias entregas; ADMIN/DEV ven las de todos
+        // (panel de admin). Sin esto, dos repartidores ven sus órdenes mezcladas.
+        var autenticado = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        List<Orden> entregas = esSuperUsuario(autenticado.getRol())
+                ? ordenRepository.findEntregasDelDia(Tipo.LLEVAR, inicio, fin)
+                : ordenRepository.findEntregasDelDiaByUsuario(Tipo.LLEVAR, autenticado.getId_usuarios(), inicio, fin);
+
+        return entregas.stream()
                 .map(orden -> {
                     var platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes())
                             .stream().map(DatosDetalleRespuesta::new).toList();

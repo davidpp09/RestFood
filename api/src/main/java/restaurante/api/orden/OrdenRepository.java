@@ -39,6 +39,14 @@ public interface OrdenRepository extends JpaRepository<Orden, Long> {
                                    @Param("inicio") LocalDateTime inicio,
                                    @Param("fin") LocalDateTime fin);
 
+    // Entregas del día de UN repartidor: su historial no debe incluir las de otros
+    // (además el numero_comanda es por usuario, así que mezclarlos duplica números).
+    @Query("SELECT o FROM orden o WHERE o.tipo = :tipo AND o.usuario.id_usuarios = :idUsuario AND o.fecha_apertura BETWEEN :inicio AND :fin AND o.estatus <> restaurante.api.orden.Estatus.CANCELADA")
+    List<Orden> findEntregasDelDiaByUsuario(@Param("tipo") Tipo tipo,
+                                            @Param("idUsuario") Long idUsuario,
+                                            @Param("inicio") LocalDateTime inicio,
+                                            @Param("fin") LocalDateTime fin);
+
     // Siguiente número de comanda = MAX+1 (no COUNT+1: borrar una orden de en medio
     // del día haría repetir números). Las CANCELADAS no consumen número.
     @Query("SELECT COALESCE(MAX(o.numero_comanda), 0) FROM orden o WHERE o.usuario.id_usuarios = :idUsuario AND o.fecha_apertura BETWEEN :inicio AND :fin AND o.estatus <> restaurante.api.orden.Estatus.CANCELADA")
