@@ -61,6 +61,11 @@ public class ImpresoraService {
     @Value("${impresora.meseras.puerto:9100}")
     private int puertoMeseras;
 
+    // Repartidores cuyo ticket de entrega va a COCINA2 en vez de REPARTIDORES.
+    // Se normaliza a mayúsculas para comparar contra usuarios.nombre.
+    @Value("${impresora.entregas.cocina2.repartidores:}")
+    private List<String> repartidoresCocina2;
+
     /**
      * Punto de entrada. Agrupa los platillos del ticket por su impresora destino
      * y envía un ticket separado a cada una. Los platillos con "SIN_IMPRESION" (o null)
@@ -248,15 +253,25 @@ public class ImpresoraService {
     @Async
     public void imprimirTicketCliente(DatosRespuestaCuenta ticket) {
         // Con mesa -> impresora de meseras (ticket final de la mesa).
-        // Sin mesa (LLEVAR/entrega) -> impresora de tickets de la zona de repartidores.
+        // Sin mesa (LLEVAR/entrega) -> impresora de tickets de la zona de repartidores,
+        // salvo repartidores configurados para imprimir su entrega en COCINA2.
         boolean esMesa = ticket.numeroMesa() != null;
-        String nombre = esMesa ? nombreMeseras : nombreTickets;
-        String ip     = esMesa ? ipMeseras     : ipTickets;
-        int puerto    = esMesa ? puertoMeseras : puertoTickets;
+        boolean entregaACocina2 = !esMesa && esRepartidorCocina2(ticket.nombreMesero());
+
+        String nombre;
+        String ip;
+        int puerto;
+        if (esMesa) {
+            nombre = nombreMeseras; ip = ipMeseras; puerto = puertoMeseras;
+        } else if (entregaACocina2) {
+            nombre = nombreCocina2; ip = ipCocina2; puerto = puertoCocina2;
+        } else {
+            nombre = nombreTickets; ip = ipTickets; puerto = puertoTickets;
+        }
         try {
             OutputStream salida = abrirConexion(nombre, ip, puerto);
             if (salida == null) {
-                System.err.println("🖨️❌ No se encontró la impresora de " + (esMesa ? "meseras" : "tickets") + ": " + nombre);
+                System.err.println("🖨️❌ No se encontró la impresora de cliente: " + nombre);
                 return;
             }
 
@@ -275,6 +290,13 @@ public class ImpresoraService {
             System.err.println("🖨️❌ Error al imprimir ticket de cliente: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /** true si el ticket de entrega de este repartidor debe imprimirse en COCINA2. */
+    private boolean esRepartidorCocina2(String nombreMesero) {
+        if (nombreMesero == null || repartidoresCocina2 == null) return false;
+        return repartidoresCocina2.stream()
+                .anyMatch(r -> r.trim().equalsIgnoreCase(nombreMesero.trim()));
     }
 
     /** Parte el texto en líneas de máximo {@code ancho} columnas sin cortar palabras. */
