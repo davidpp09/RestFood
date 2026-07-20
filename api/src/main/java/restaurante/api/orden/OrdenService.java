@@ -440,6 +440,7 @@ public class OrdenService {
                             orden.getFecha_apertura(),
                             orden.getEstatus(),
                             orden.getTotal(),
+                            orden.getUsuario().getNombre(),
                             platillos
                     );
                 }).toList();

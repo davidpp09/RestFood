@@ -12,5 +12,6 @@ public record DatosEntregaHoy(
         LocalDateTime fechaApertura,
         Estatus estatus,
         BigDecimal total,
+        String nombreRepartidor,
         List<DatosDetalleRespuesta> platillos
 ) {}
