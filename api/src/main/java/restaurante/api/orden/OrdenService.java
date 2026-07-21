@@ -453,6 +453,21 @@ public class OrdenService {
         LocalDateTime inicio = fecha.atStartOfDay();
         LocalDateTime fin    = fecha.atTime(LocalTime.MAX);
 
+        // Cancelaciones de platillo del día, agrupadas por orden, para mostrar dentro
+        // de cada comanda qué se canceló, cuándo y quién lo hizo.
+        Map<Long, List<DatosPlatilloCancelado>> canceladosPorOrden = eventoOrdenRepository
+                .findByTipoEventoAndTimestampBetween(TipoEvento.PLATILLO_CANCELADO, inicio, fin)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        e -> e.getOrden().getId_ordenes(),
+                        Collectors.mapping(e -> new DatosPlatilloCancelado(
+                                e.getNombreProducto(),
+                                e.getCantidadAnterior(),
+                                e.getTimestamp(),
+                                e.getNombreMesero(),
+                                e.getComentariosAnterior()
+                        ), Collectors.toList())));
+
         return ordenRepository.findOrdenesDelDia(inicio, fin).stream()
                 .map(orden -> {
                     var platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes())
@@ -470,7 +485,8 @@ public class OrdenService {
                             orden.getUsuario().getId_usuarios(),
                             orden.getUsuario().getNombre(),
                             orden.getUsuario().getRol().toString(),
-                            platillos
+                            platillos,
+                            canceladosPorOrden.getOrDefault(orden.getId_ordenes(), List.of())
                     );
                 }).toList();
     }

@@ -21,5 +21,6 @@ public record DatosComandaEmpleado(
         Long id_usuario,
         String nombreEmpleado,
         String rolEmpleado,
-        List<DatosDetalleRespuesta> platillos
+        List<DatosDetalleRespuesta> platillos,
+        List<DatosPlatilloCancelado> cancelados
 ) {}
