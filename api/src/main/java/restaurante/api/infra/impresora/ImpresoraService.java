@@ -154,9 +154,9 @@ public class ImpresoraService {
         Style normal = new Style()
                 .setFontSize(Style.FontSize._1, Style.FontSize._1);
 
-        // Comentarios también en doble ancho, alto normal
+        // Comentarios en doble ancho y alto (2x2, pedido de David 2026-07-21)
         Style comentario = new Style()
-                .setFontSize(Style.FontSize._2, Style.FontSize._1);
+                .setFontSize(Style.FontSize._2, Style.FontSize._2);
 
         // Platillos en doble ancho y alto (pedido de David 2026-07-17) — a este
         // tamaño solo caben 24 columnas por línea
@@ -207,10 +207,17 @@ public class ImpresoraService {
      */
     @Async
     public void imprimirTiemposLlevar(Integer numeroComanda, String nombre, DatosTiemposComanda tiempos) {
+        // Mismo ruteo que el ticket de entrega: repartidores configurados
+        // (p. ej. SRA.ANGELES) imprimen su talón en COCINA2, el resto en REPARTIDORES,
+        // para que a cada quien le salga todo junto.
+        boolean aCocina2 = esRepartidorCocina2(nombre);
+        String impNombre = aCocina2 ? nombreCocina2 : nombreTickets;
+        String impIp     = aCocina2 ? ipCocina2     : ipTickets;
+        int    impPuerto = aCocina2 ? puertoCocina2 : puertoTickets;
         try {
-            OutputStream salida = abrirConexion(nombreTickets, ipTickets, puertoTickets);
+            OutputStream salida = abrirConexion(impNombre, impIp, impPuerto);
             if (salida == null) {
-                System.err.println("🖨️❌ No se encontró la impresora de tickets (tiempos): " + nombreTickets);
+                System.err.println("🖨️❌ No se encontró la impresora del talón: " + impNombre);
                 return;
             }
 
@@ -226,14 +233,19 @@ public class ImpresoraService {
 
             String rayita = "-".repeat(48);
 
-            // Compacto: una línea de identidad y solo los tiempos pedidos, en grande
-            escpos.writeLF(subtitulo, "TIEMPOS - Comanda #" + numeroComanda);
+            // Título según el grupo marcado: DESAYUNO (café/jugo) o TIEMPOS (comida).
+            String titulo = tiempos.tieneDesayuno() && !tiempos.tieneComida() ? "DESAYUNO" : "TIEMPOS";
+            escpos.writeLF(subtitulo, titulo + " - Comanda #" + numeroComanda);
             escpos.writeLF(rayita);
 
+            // COMIDA (1er y 2do tiempo)
             if (tiempos.consomeSeguro() > 0)    escpos.writeLF(grande, tiempos.consomeSeguro() + "x Consome");
             if (tiempos.sopaCremaSegura() > 0)  escpos.writeLF(grande, tiempos.sopaCremaSegura() + "x Sopa/Crema");
             if (tiempos.arrozSeguro() > 0)      escpos.writeLF(grande, tiempos.arrozSeguro() + "x Arroz");
             if (tiempos.espaguettiSeguro() > 0) escpos.writeLF(grande, tiempos.espaguettiSeguro() + "x Espaguetti");
+            // DESAYUNO (bebida)
+            if (tiempos.cafeSeguro() > 0)       escpos.writeLF(grande, tiempos.cafeSeguro() + "x Cafe");
+            if (tiempos.jugoSeguro() > 0)       escpos.writeLF(grande, tiempos.jugoSeguro() + "x Jugo");
 
             escpos.writeLF(rayita);
 
@@ -241,9 +253,9 @@ public class ImpresoraService {
             escpos.cut(EscPos.CutMode.FULL);
             escpos.close();
 
-            System.out.println("🖨️✅ Talón de tiempos impreso en: " + nombreTickets + " (Comanda #" + numeroComanda + ")");
+            System.out.println("🖨️✅ Talón impreso en: " + impNombre + " (Comanda #" + numeroComanda + ")");
         } catch (Exception e) {
-            System.err.println("🖨️❌ Error al imprimir talón de tiempos: " + e.getMessage());
+            System.err.println("🖨️❌ Error al imprimir talón: " + e.getMessage());
             e.printStackTrace();
         }
     }
