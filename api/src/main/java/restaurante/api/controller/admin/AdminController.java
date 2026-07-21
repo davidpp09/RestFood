@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import restaurante.api.admin.DatosCancelacionMesero;
 import restaurante.api.admin.DatosCorteDia;
+import restaurante.api.orden.DatosComandaEmpleado;
 import restaurante.api.orden.OrdenService;
 
 import java.util.List;
@@ -28,6 +29,15 @@ public class AdminController {
     public ResponseEntity<DatosCorteDia> corteDia(
             @RequestParam(required = false) LocalDate fecha) {
         var datos = ordenService.master(fecha != null ? fecha : LocalDate.now());
+        return ResponseEntity.ok(datos);
+    }
+
+    // Ruta distinta a la página del frontend /admin/comandas para no chocar en
+    // Caddy (mismo patrón que corte-dia vs la página /admin/reportes).
+    @GetMapping("/comandas-dia")
+    public ResponseEntity<List<DatosComandaEmpleado>> comandas(
+            @RequestParam(required = false) LocalDate fecha) {
+        var datos = ordenService.obtenerComandasDelDia(fecha != null ? fecha : LocalDate.now());
         return ResponseEntity.ok(datos);
     }
 

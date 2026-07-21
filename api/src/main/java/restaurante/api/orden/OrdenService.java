@@ -446,6 +446,35 @@ public class OrdenService {
                 }).toList();
     }
 
+    // Panel de admin "Comandas": todas las órdenes de un día con su detalle de
+    // platillos, para revisar una por una lo que capturó cada empleado.
+    @Transactional(readOnly = true)
+    public List<DatosComandaEmpleado> obtenerComandasDelDia(LocalDate fecha) {
+        LocalDateTime inicio = fecha.atStartOfDay();
+        LocalDateTime fin    = fecha.atTime(LocalTime.MAX);
+
+        return ordenRepository.findOrdenesDelDia(inicio, fin).stream()
+                .map(orden -> {
+                    var platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes())
+                            .stream().map(DatosDetalleRespuesta::new).toList();
+                    return new DatosComandaEmpleado(
+                            orden.getId_ordenes(),
+                            orden.getNumero_comanda(),
+                            orden.getFecha_apertura(),
+                            orden.getFechaCierre(),
+                            orden.getEstatus(),
+                            orden.getTipo(),
+                            orden.getServicio(),
+                            orden.getTotal(),
+                            orden.getMesa() != null ? orden.getMesa().getNumero() : null,
+                            orden.getUsuario().getId_usuarios(),
+                            orden.getUsuario().getNombre(),
+                            orden.getUsuario().getRol().toString(),
+                            platillos
+                    );
+                }).toList();
+    }
+
     @Transactional(readOnly = true)
     public List<DatosRespuestaOrden> listarOrdenesCocina() {
         return ordenRepository.findByEstatus(Estatus.PREPARANDO).stream().map(orden -> {

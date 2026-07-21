@@ -47,6 +47,13 @@ public interface OrdenRepository extends JpaRepository<Orden, Long> {
                                             @Param("inicio") LocalDateTime inicio,
                                             @Param("fin") LocalDateTime fin);
 
+    // Todas las órdenes del día (loza y para llevar) ordenadas por empleado y luego
+    // por número de comanda, para el panel de admin "Comandas por empleado".
+    // Las CANCELADAS no se listan (ya tienen su propio reporte de cancelaciones).
+    @Query("SELECT o FROM orden o WHERE o.fecha_apertura BETWEEN :inicio AND :fin AND o.estatus <> restaurante.api.orden.Estatus.CANCELADA ORDER BY o.usuario.nombre ASC, o.numero_comanda ASC")
+    List<Orden> findOrdenesDelDia(@Param("inicio") LocalDateTime inicio,
+                                  @Param("fin") LocalDateTime fin);
+
     // Siguiente número de comanda = MAX+1 (no COUNT+1: borrar una orden de en medio
     // del día haría repetir números). Las CANCELADAS no consumen número.
     @Query("SELECT COALESCE(MAX(o.numero_comanda), 0) FROM orden o WHERE o.usuario.id_usuarios = :idUsuario AND o.fecha_apertura BETWEEN :inicio AND :fin AND o.estatus <> restaurante.api.orden.Estatus.CANCELADA")
