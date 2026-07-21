@@ -144,10 +144,9 @@ public class ImpresoraService {
     // con su estado (NUEVO/MODIFICADO/CANCELADO); comentarios en renglón propio.
     private void escribirTicket(EscPos escpos, DatosTicketCocina ticket,
                                 List<DatosPlatilloTicket> platillos) throws Exception {
-        // Cabecera en doble ancho, alto normal (pedido de David 2026-07-18) — a
-        // doble ancho solo caben 24 columnas por línea
+        // Cabecera LLEVAR/LOZA en doble ancho y alto (2x2, pedido de David 2026-07-21)
         Style subtitulo = new Style()
-                .setFontSize(Style.FontSize._2, Style.FontSize._1)
+                .setFontSize(Style.FontSize._2, Style.FontSize._2)
                 .setJustification(EscPosConst.Justification.Center)
                 .setBold(true);
 
@@ -166,13 +165,13 @@ public class ImpresoraService {
 
         String rayita = "-".repeat(48);
 
-        // Cabecera: tipo + comanda, quién la levantó y hora de envío a cocina
+        // Cabecera: solo el tipo (LLEVAR/LOZA), quién la levantó y hora de envío a cocina
         String horaEnvio = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
         if (ticket.tipo() == Tipo.LOZA) {
-            escpos.writeLF(subtitulo, "LOZA - Comanda #" + ticket.numero_comanda());
+            escpos.writeLF(subtitulo, "LOZA");
             escpos.writeLF(normal, filaTicket("Mesera: " + ticket.nombre(), horaEnvio));
         } else {
-            escpos.writeLF(subtitulo, "LLEVAR - Comanda #" + ticket.numero_comanda());
+            escpos.writeLF(subtitulo, "LLEVAR");
             escpos.writeLF(normal, filaTicket("Repartidor: " + ticket.nombre(), horaEnvio));
         }
         escpos.writeLF(rayita);
