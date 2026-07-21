@@ -453,9 +453,30 @@ public class OrdenService {
         LocalDateTime inicio = fecha.atStartOfDay();
         LocalDateTime fin    = fecha.atTime(LocalTime.MAX);
 
-        // Cancelaciones de platillo del día, agrupadas por orden, para mostrar dentro
-        // de cada comanda qué se canceló, cuándo y quién lo hizo.
-        Map<Long, List<DatosPlatilloCancelado>> canceladosPorOrden = eventoOrdenRepository
+        var canceladosPorOrden = cancelacionesDelDia(inicio, fin);
+        return ordenRepository.findOrdenesDelDia(inicio, fin).stream()
+                .map(orden -> aComandaEmpleado(orden, canceladosPorOrden))
+                .toList();
+    }
+
+    // Mis comandas del día: las del empleado autenticado (mesero/repartidor ve solo
+    // las suyas), con su detalle y cancelaciones, para revisarlas y reimprimir.
+    @Transactional(readOnly = true)
+    public List<DatosComandaEmpleado> obtenerMisComandasDelDia() {
+        var autenticado = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        LocalDateTime inicio = LocalDate.now().atStartOfDay();
+        LocalDateTime fin    = LocalDate.now().atTime(LocalTime.MAX);
+
+        var canceladosPorOrden = cancelacionesDelDia(inicio, fin);
+        return ordenRepository.findMisOrdenesDelDia(autenticado.getId_usuarios(), inicio, fin).stream()
+                .map(orden -> aComandaEmpleado(orden, canceladosPorOrden))
+                .toList();
+    }
+
+    // Cancelaciones de platillo del día, agrupadas por orden, para mostrar dentro de
+    // cada comanda qué se canceló, cuándo y quién lo hizo.
+    private Map<Long, List<DatosPlatilloCancelado>> cancelacionesDelDia(LocalDateTime inicio, LocalDateTime fin) {
+        return eventoOrdenRepository
                 .findByTipoEventoAndTimestampBetween(TipoEvento.PLATILLO_CANCELADO, inicio, fin)
                 .stream()
                 .collect(Collectors.groupingBy(
@@ -467,28 +488,28 @@ public class OrdenService {
                                 e.getNombreMesero(),
                                 e.getComentariosAnterior()
                         ), Collectors.toList())));
+    }
 
-        return ordenRepository.findOrdenesDelDia(inicio, fin).stream()
-                .map(orden -> {
-                    var platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes())
-                            .stream().map(DatosDetalleRespuesta::new).toList();
-                    return new DatosComandaEmpleado(
-                            orden.getId_ordenes(),
-                            orden.getNumero_comanda(),
-                            orden.getFecha_apertura(),
-                            orden.getFechaCierre(),
-                            orden.getEstatus(),
-                            orden.getTipo(),
-                            orden.getServicio(),
-                            orden.getTotal(),
-                            orden.getMesa() != null ? orden.getMesa().getNumero() : null,
-                            orden.getUsuario().getId_usuarios(),
-                            orden.getUsuario().getNombre(),
-                            orden.getUsuario().getRol().toString(),
-                            platillos,
-                            canceladosPorOrden.getOrDefault(orden.getId_ordenes(), List.of())
-                    );
-                }).toList();
+    private DatosComandaEmpleado aComandaEmpleado(Orden orden,
+                                                  Map<Long, List<DatosPlatilloCancelado>> canceladosPorOrden) {
+        var platillos = ordenDetalleRepository.findAllByOrdenId(orden.getId_ordenes())
+                .stream().map(DatosDetalleRespuesta::new).toList();
+        return new DatosComandaEmpleado(
+                orden.getId_ordenes(),
+                orden.getNumero_comanda(),
+                orden.getFecha_apertura(),
+                orden.getFechaCierre(),
+                orden.getEstatus(),
+                orden.getTipo(),
+                orden.getServicio(),
+                orden.getTotal(),
+                orden.getMesa() != null ? orden.getMesa().getNumero() : null,
+                orden.getUsuario().getId_usuarios(),
+                orden.getUsuario().getNombre(),
+                orden.getUsuario().getRol().toString(),
+                platillos,
+                canceladosPorOrden.getOrDefault(orden.getId_ordenes(), List.of())
+        );
     }
 
     @Transactional(readOnly = true)

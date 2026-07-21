@@ -49,6 +49,14 @@ public class OrdenesController {
         return ResponseEntity.ok(service.obtenerEntregasHoy());
     }
 
+    // Las comandas del día del empleado autenticado (mesero ve solo las suyas),
+    // para revisarlas y reimprimir su ticket.
+    @GetMapping("/mis-comandas")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'MESERO', 'REPARTIDOR', 'CAJERO')")
+    public ResponseEntity<List<DatosComandaEmpleado>> misComandas() {
+        return ResponseEntity.ok(service.obtenerMisComandasDelDia());
+    }
+
     @PutMapping("/{id}/cerrar")
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'CAJERO', 'MESERO', 'REPARTIDOR')")
