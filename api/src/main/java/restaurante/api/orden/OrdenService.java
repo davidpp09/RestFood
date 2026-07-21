@@ -506,8 +506,13 @@ public class OrdenService {
 
     public List<DatosVentaEmpleado> ventaEmpleados(Map<String, List<Orden>> ventasPorNombre) {
         return ventasPorNombre.entrySet().stream()
-                .map(entry -> new DatosVentaEmpleado(entry.getKey(), entry.getValue().size(),
-                        entry.getValue().stream().map(Orden::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add)))
+                .map(entry -> {
+                    // El rol se toma de la primera orden del grupo (todas son del mismo usuario)
+                    String rol = entry.getValue().get(0).getUsuario().getRol().toString();
+                    BigDecimal total = entry.getValue().stream()
+                            .map(Orden::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return new DatosVentaEmpleado(entry.getKey(), rol, entry.getValue().size(), total);
+                })
                 .toList();
     }
 
