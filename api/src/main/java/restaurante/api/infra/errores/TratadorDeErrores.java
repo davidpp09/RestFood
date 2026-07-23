@@ -1,6 +1,7 @@
 package restaurante.api.infra.errores;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -38,6 +39,13 @@ public class TratadorDeErrores {
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity tratarErrorUsuarioDesactivado() {
         return ResponseEntity.status(401).body(new DatosRespuestaError("Este usuario está desactivado. Contacta al administrador."));
+    }
+
+    // Violaciones de integridad (FK en uso, nombres duplicados) → 409 con mensaje claro
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity tratarErrorIntegridad() {
+        return ResponseEntity.status(409).body(new DatosRespuestaError(
+                "No se puede completar la operación: el registro está en uso por otros datos o ya existe uno igual."));
     }
 
     @ExceptionHandler(Exception.class)

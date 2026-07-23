@@ -15,6 +15,9 @@ public interface OrdenDetalleRepository extends JpaRepository<OrdenDetalle, Long
     @Query("SELECT d FROM ordenDetalle d WHERE d.orden.id_ordenes = :id")
     List<OrdenDetalle> findAllByOrdenId(Long id);
 
+    @Query("SELECT COUNT(od) > 0 FROM ordenDetalle od WHERE od.producto.id_productos = :productoId")
+    boolean existePorProducto(@Param("productoId") Long productoId);
+
     @Query("""
                 SELECT COALESCE(SUM(od.cantidad), 0)
                 FROM ordenDetalle od

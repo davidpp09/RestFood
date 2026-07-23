@@ -33,6 +33,9 @@ public class Producto {
     @Column(nullable = false)
     private Boolean disponibilidad;
 
+    @Column(nullable = false)
+    private Boolean eliminado = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_categoria", nullable = false)
     private Categoria categoria;
@@ -43,6 +46,7 @@ public class Producto {
         this.precio_comida = datosRegistroProducto.precio_comida();
         this.precio_desayuno = datosRegistroProducto.precio_desayuno();
         this.disponibilidad = datosRegistroProducto.disponibilidad();
+        this.eliminado = false;
         this.categoria = categoria;
     }
 
@@ -52,6 +56,21 @@ public class Producto {
         if (datos.precio_desayuno() != null) this.precio_desayuno = datos.precio_desayuno();
         if (datos.disponibilidad() != null)  this.disponibilidad  = datos.disponibilidad();
         if (categoriaCompleta != null)       this.categoria        = categoriaCompleta;
+    }
+
+    // Borrado suave: conserva el registro para el historial de ventas
+    public void marcarEliminado() {
+        this.eliminado = true;
+        this.disponibilidad = false;
+    }
+
+    // Reutiliza un producto marcado como eliminado cuando se registra otro con el mismo nombre
+    public void restaurar(DatosRegistroProducto datos, Categoria categoria) {
+        this.precio_comida = datos.precio_comida();
+        this.precio_desayuno = datos.precio_desayuno();
+        this.disponibilidad = datos.disponibilidad();
+        this.categoria = categoria;
+        this.eliminado = false;
     }
 
     public void actualizarDia(DatosActualizacionDia datos) {
