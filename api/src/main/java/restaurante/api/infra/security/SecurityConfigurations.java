@@ -39,6 +39,11 @@ public class SecurityConfigurations {
                     req.requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/login").permitAll();
                     req.requestMatchers("/ws-restfood/**").permitAll();
+                    // Chequeo de vida del servidor (Lección 06). Sin token a
+                    // propósito: si exigiera autenticación, el monitor no podría
+                    // distinguir "la base está caída" de "no tengo permiso".
+                    // Solo expone {"status":"UP"|"DOWN"} — sin detalles.
+                    req.requestMatchers("/actuator/health").permitAll();
                     req.anyRequest().authenticated();
                 })
                 // 2. Ejecuta tu filtro de JWT antes del de Spring 🛡️
