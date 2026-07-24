@@ -11,6 +11,12 @@ WorkingDirectory=/home/david/RestFoodB/api
 EnvironmentFile=/etc/restfood/backend.env
 # current.jar es un symlink a la release activa en ~/deploys/restfood-backend/releases/
 ExecStart=/usr/bin/java -jar /home/david/deploys/restfood-backend/current.jar
+# Java devuelve 143 (128+15 = SIGTERM) cuando recibe la señal de apagado y
+# cierra limpiamente. Sin esta linea systemd lo lee como fallo, y con el
+# OnFailure= de la Leccion 06 eso manda un correo de alerta en CADA reinicio:
+# cada deploy, cada reboot y el apagado de las 19:00. Comprobado el 2026-07-24.
+SuccessExitStatus=143
+
 Restart=always
 RestartSec=10
 
