@@ -24,5 +24,6 @@ Guía para Claude Code al trabajar en este repo. El contexto general del proyect
 
 ## Reglas del proyecto
 - Este sistema está EN PRODUCCIÓN en un restaurante real. No desplegar sin que David lo apruebe.
-- Los cambios de esquema de BD se documentan (migraciones versionadas — pendiente de adoptar Flyway).
+- **Todo cambio de esquema va en una migración de Flyway** (`api/src/main/resources/db/migration/`), nunca a mano en la base. El esquema completo se reconstruye desde `V0__esquema_inicial.sql`; producción lo salta por su marca de baseline en la versión 0.
+- El CI levanta un MySQL vacío y deja que Flyway lo construya, así que una migración rota se detecta en el PR. Con `ddl-auto=validate`, si agregas un campo a una entidad y olvidas la migración, el CI falla.
 - Explicar a David el porqué de cada práctica nueva: el objetivo es que aprenda el proceso, no solo el resultado. Las explicaciones largas van al handbook (`~/restfood-handbook/`), no solo al chat.
