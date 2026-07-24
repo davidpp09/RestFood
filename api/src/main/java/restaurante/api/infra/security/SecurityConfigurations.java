@@ -62,6 +62,13 @@ public class SecurityConfigurations {
         return configuration.getAuthenticationManager();
     }
 
+    // Reloj inyectable: permite que los tests del límite de intentos adelanten
+    // el tiempo en vez de esperar 5 minutos de verdad.
+    @Bean
+    public java.time.Clock reloj() {
+        return java.time.Clock.systemDefaultZone();
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
