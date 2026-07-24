@@ -1,0 +1,18 @@
+[Unit]
+Description=RestFood Backend - Spring Boot API
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=david
+WorkingDirectory=/home/david/RestFoodB/api
+# Secretos fuera del repo: JWT_SECRET y DB_PASSWORD viven en este archivo (600)
+EnvironmentFile=/etc/restfood/backend.env
+# current.jar es un symlink a la release activa en ~/deploys/restfood-backend/releases/
+ExecStart=/usr/bin/java -jar /home/david/deploys/restfood-backend/current.jar
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
