@@ -17,10 +17,13 @@ import java.util.List;
 /**
  * Inventario, Fase 1: el kardex a mano.
  *
- * Reparto de permisos: COCINA es quien tiene la mercancía enfrente, así que
- * captura entradas, mermas y conteos. El alta de insumos y el catálogo son de
- * ADMIN/DEV, porque definir QUÉ se controla es una decisión de negocio, no de
- * operación.
+ * Reparto de permisos: la captura (entradas, mermas y conteos) es de ADMIN/DEV.
+ * COCINA solo CONSULTA existencias — necesita saber con qué cuenta para el
+ * servicio, pero no mueve el kardex.
+ *
+ * Ojo: esto no se resuelve escondiendo botones en el frontend. Un menú oculto
+ * no es un permiso: quien tenga el rol puede mandar la petición a mano. El
+ * control real es este @PreAuthorize.
  */
 @RequestMapping("/inventario")
 @RestController
@@ -53,7 +56,7 @@ public class InventarioController {
     }
 
     @GetMapping("/insumos")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'COCINA')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<List<DatosRespuestaInsumo>> listarInsumos() {
         return ResponseEntity.ok(insumoRepository.findByActivoTrueOrderByNombreAsc()
                 .stream().map(DatosRespuestaInsumo::new).toList());
@@ -86,7 +89,7 @@ public class InventarioController {
     // que se quería dar. Las reglas de negocio suben como ValidacionException y
     // las formatea TratadorDeErrores.
     @PostMapping("/movimientos")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'COCINA')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<DatosRespuestaMovimiento> registrarMovimiento(
             @RequestBody @Valid DatosRegistroMovimiento datos,
             @AuthenticationPrincipal Usuario usuario) {
@@ -94,7 +97,7 @@ public class InventarioController {
     }
 
     @GetMapping("/insumos/{id}/kardex")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'COCINA')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<List<DatosRespuestaMovimiento>> kardex(@PathVariable Long id) {
         return ResponseEntity.ok(service.kardex(id));
     }
@@ -110,7 +113,7 @@ public class InventarioController {
     // ---------- Conteo físico ----------
 
     @PostMapping("/conteos")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'COCINA')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<DatosRespuestaConteo> registrarConteo(
             @RequestBody @Valid DatosRegistroConteo datos,
             @AuthenticationPrincipal Usuario usuario) {
