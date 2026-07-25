@@ -35,6 +35,9 @@ public class InventarioController {
     @Autowired
     private InventarioService service;
 
+    @Autowired
+    private RecetaService recetaService;
+
     // ---------- Catálogo de insumos ----------
 
     @PostMapping("/insumos")
@@ -108,6 +111,24 @@ public class InventarioController {
     @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'COCINA')")
     public ResponseEntity<List<DatosExistencia>> existencias() {
         return ResponseEntity.ok(service.existencias());
+    }
+
+    // ---------- Recetas (qué platillo consume qué insumo) ----------
+
+    @GetMapping("/insumos/{id}/receta")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
+    public ResponseEntity<DatosRespuestaReceta> obtenerReceta(@PathVariable Long id) {
+        return ResponseEntity.ok(recetaService.obtener(id));
+    }
+
+    // PUT y no POST: reemplaza la receta completa del insumo. Mandar una lista
+    // vacía desliga todos sus platillos, que es justo lo que se espera al
+    // desmarcar todo en la pantalla.
+    @PutMapping("/insumos/{id}/receta")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
+    public ResponseEntity<DatosRespuestaReceta> guardarReceta(@PathVariable Long id,
+                                                              @RequestBody @Valid DatosGuardarReceta datos) {
+        return ResponseEntity.ok(recetaService.guardar(id, datos));
     }
 
     // ---------- Conteo físico ----------
