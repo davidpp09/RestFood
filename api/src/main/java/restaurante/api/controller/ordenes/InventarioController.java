@@ -115,6 +115,14 @@ public class InventarioController {
 
     // ---------- Recetas (qué platillo consume qué insumo) ----------
 
+    // Todas las relaciones de un jalón: permite a la pantalla marcar los
+    // platillos que ya cuelgan de OTRO insumo y los que no cuelgan de ninguno.
+    @GetMapping("/recetas")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
+    public ResponseEntity<List<DatosRelacionProducto>> todasLasRecetas() {
+        return ResponseEntity.ok(recetaService.todas());
+    }
+
     @GetMapping("/insumos/{id}/receta")
     @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<DatosRespuestaReceta> obtenerReceta(@PathVariable Long id) {

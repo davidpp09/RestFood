@@ -35,6 +35,21 @@ public interface ProductoInsumoRepository extends JpaRepository<ProductoInsumo, 
     @Query("DELETE FROM productoInsumo r WHERE r.insumo.id_insumos = :idInsumo")
     void borrarPorInsumo(Long idInsumo);
 
+    /**
+     * Todas las relaciones de un jalón.
+     *
+     * Sin este panorama, cada receta se edita a ciegas: no hay forma de ver que
+     * un platillo ya está colgado de otro insumo, y se termina descontando dos
+     * cosas por un platillo que solo lleva una. Son unas cientos de filas, así
+     * que traerlas todas sale más barato que consultar insumo por insumo.
+     */
+    @Query("""
+            SELECT r FROM productoInsumo r
+            JOIN FETCH r.producto
+            JOIN FETCH r.insumo
+            """)
+    List<ProductoInsumo> todas();
+
     /** Cuántos platillos tiene relacionados cada insumo — para el resumen de la pantalla. */
     @Query("""
             SELECT r.insumo.id_insumos, COUNT(r)

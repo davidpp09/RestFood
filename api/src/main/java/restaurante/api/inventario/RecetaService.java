@@ -21,6 +21,11 @@ public class RecetaService {
     @Autowired
     private ProductoInsumoRepository recetaRepository;
 
+    /** El panorama completo: todas las relaciones, para ver repetidos y huecos. */
+    public List<DatosRelacionProducto> todas() {
+        return recetaRepository.todas().stream().map(DatosRelacionProducto::new).toList();
+    }
+
     public DatosRespuestaReceta obtener(Long idInsumo) {
         Insumo insumo = insumoRepository.findById(idInsumo)
                 .orElseThrow(() -> new RecursoNoEncontradoException("No existe el insumo " + idInsumo));
