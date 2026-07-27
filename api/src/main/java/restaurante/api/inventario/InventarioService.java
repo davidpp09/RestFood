@@ -69,9 +69,16 @@ public class InventarioService {
                     "'" + insumo.getNombre() + "' ya tiene su conteo inicial. Para corregirlo, usa un conteo físico");
         }
 
+        // El costo solo tiene sentido en una COMPRA. En una merma "cuánto costó"
+        // no es un dato de captura, es una cuenta que hace el reporte con el
+        // promedio — dejar capturarlo aquí crearía dos fuentes para el mismo número.
+        if (datos.costo_total() != null && datos.tipo() != TipoMovimiento.COMPRA) {
+            throw new ValidacionException("El costo solo se captura en las compras");
+        }
+
         int cantidadConSigno = aplicarSigno(datos.tipo(), datos.cantidad());
         var movimiento = new MovimientoInventario(
-                insumo, datos.tipo(), cantidadConSigno, datos.motivo(), usuario, ahora());
+                insumo, datos.tipo(), cantidadConSigno, datos.motivo(), datos.costo_total(), usuario, ahora());
 
         return new DatosRespuestaMovimiento(movimientoRepository.save(movimiento));
     }

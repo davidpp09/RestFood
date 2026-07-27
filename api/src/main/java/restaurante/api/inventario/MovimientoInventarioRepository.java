@@ -28,4 +28,17 @@ public interface MovimientoInventarioRepository extends JpaRepository<Movimiento
     List<MovimientoInventario> entre(LocalDateTime desde, LocalDateTime hasta);
 
     boolean existsByInsumoAndTipo(Insumo insumo, TipoMovimiento tipo);
+
+    /**
+     * Las compras que traen costo: la materia prima del promedio ponderado
+     * (Fase 3). Las compras sin costo quedan fuera a propósito — cuentan
+     * piezas, pero no pueden opinar sobre el precio.
+     */
+    @Query("""
+            SELECT m FROM movimientoInventario m
+            JOIN FETCH m.insumo
+            WHERE m.tipo = restaurante.api.inventario.TipoMovimiento.COMPRA
+              AND m.costo_total IS NOT NULL
+            """)
+    List<MovimientoInventario> comprasConCosto();
 }

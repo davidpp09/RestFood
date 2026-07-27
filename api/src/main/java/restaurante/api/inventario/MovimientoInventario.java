@@ -43,6 +43,14 @@ public class MovimientoInventario {
 
     private String motivo;
 
+    /**
+     * Solo COMPRA lo llena: lo pagado EN TOTAL por esta entrada, tal como viene
+     * en la nota del proveedor. El unitario se deriva; nunca se captura.
+     * Nullable: una compra sin costo sigue contando piezas (ver V4).
+     */
+    @Column(name = "costo_total")
+    private java.math.BigDecimal costo_total;
+
     /** Solo lo llenan VENTA y la MERMA por cancelación (Fase 2). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_orden")
@@ -64,5 +72,14 @@ public class MovimientoInventario {
         this.usuario = usuario;
         this.fecha = fecha;
         this.orden = null;
+        this.costo_total = null;
+    }
+
+    /** Compra con costo: el único caso en que el dinero entra al kardex. */
+    public MovimientoInventario(Insumo insumo, TipoMovimiento tipo, int cantidad,
+                                String motivo, java.math.BigDecimal costoTotal,
+                                Usuario usuario, LocalDateTime fecha) {
+        this(insumo, tipo, cantidad, motivo, usuario, fecha);
+        this.costo_total = costoTotal;
     }
 }
