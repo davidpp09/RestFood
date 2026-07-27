@@ -99,6 +99,6 @@ public class ConsumoInventarioService {
     private void registrar(ProductoInsumo linea, TipoMovimiento tipo, int cantidadConSigno,
                            Orden orden, Usuario usuario, String motivo) {
         movimientoRepository.save(new MovimientoInventario(
-                null, linea.getInsumo(), tipo, cantidadConSigno, motivo, orden, usuario, LocalDateTime.now()));
+                null, linea.getInsumo(), tipo, cantidadConSigno, motivo, null, orden, usuario, LocalDateTime.now()));
     }
 }

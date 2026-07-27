@@ -12,6 +12,10 @@ public record DatosRegistroMovimiento(
         @NotNull Long id_insumo,
         @NotNull TipoMovimiento tipo,
         @NotNull @Positive Integer cantidad,
-        String motivo
+        String motivo,
+
+        // Solo para COMPRA: lo pagado en total por esta entrada. Opcional a
+        // propósito — una compra sin la nota a la mano no debe perderse.
+        @Positive java.math.BigDecimal costo_total
 ) {
 }

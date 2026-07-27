@@ -39,6 +39,9 @@ public class InventarioController {
     @Autowired
     private RecetaService recetaService;
 
+    @Autowired
+    private CosteoService costeoService;
+
     // ---------- Catálogo de insumos ----------
 
     @PostMapping("/insumos")
@@ -131,6 +134,18 @@ public class InventarioController {
         LocalDate d = desde != null ? desde : LocalDate.now().withDayOfMonth(1);
         LocalDate h = hasta != null ? hasta : LocalDate.now();
         return ResponseEntity.ok(service.teoricoContraReal(d, h));
+    }
+
+    /**
+     * Food cost (Fase 3): costo de insumos vigilados por platillo y qué % del
+     * precio se lleva. Es un PISO del costo real — solo cuenta lo que está en
+     * el kardex — y los platillos con insumos aún sin precio vienen marcados
+     * con costo_incompleto.
+     */
+    @GetMapping("/reportes/food-cost")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
+    public ResponseEntity<List<DatosFoodCost>> foodCost() {
+        return ResponseEntity.ok(costeoService.foodCost());
     }
 
     // ---------- Recetas (qué platillo consume qué insumo) ----------
