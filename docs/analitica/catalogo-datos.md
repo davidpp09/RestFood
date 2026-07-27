@@ -289,19 +289,48 @@ Es coherente con que la mayoría de las cancelaciones son cuentas abiertas por e
 
 Lo que sí se puede medir: cuántas cancelaciones, de quién, en qué días. `AdminController.cancelaciones` ya expone parte de esto, y hay picos claros (28 el 23 de julio, 26 el 17).
 
-Y al medirlo aparece un patrón que vale la pena tener presente antes de que alguien saque conclusiones apresuradas de la vista nueva. Tasa de cancelación desde el 20 de julio:
+### La trampa dentro de la trampa: casi ninguna "cancelación" es una cancelación
 
-| Empleado | Rol | Órdenes | Canceladas | % |
-|---|---|---:|---:|---:|
-| SRA.ANGELES | REPARTIDOR | 155 | 53 | 34.2% |
-| HECTOR | REPARTIDOR | 155 | 21 | 13.5% |
-| MARELI | MESERO | 240 | 19 | 7.9% |
-| VALERIA | MESERO | 236 | 10 | 4.2% |
-| MAGUI | MESERO | 204 | 5 | 2.5% |
+Este es el hallazgo más contraintuitivo de todo el análisis, y el que más fácil lleva a una conclusión equivocada.
 
-Visto por persona parece un problema de personas. Visto por canal, no lo es: **Para Llevar cancela el 24% de sus órdenes (74 de 310) y Mesa el 5% (34 de 680)**. Los dos primeros lugares de la tabla son los dos repartidores, y todos los meseros están por debajo del 8%. La explicación estructural — pedidos telefónicos que no se concretan — explica la mayor parte antes de que haga falta buscar explicaciones individuales.
+De **152 órdenes canceladas en todo el histórico, solo 3 llegaron a tener un platillo**. Las otras 149 nacieron y murieron vacías.
 
-**Consecuencia de diseño:** cualquier vista que muestre cancelaciones por empleado debe mostrar también el desglose por tipo, o va a acusar a los repartidores de un comportamiento del canal. Está anotado en el brief.
+Desglosado por rol:
+
+| Rol | Canceladas | Vida promedio | Llegaron a tener platillos |
+|---|---:|---:|---:|
+| REPARTIDOR | 103 | **122 segundos** | **0** |
+| MESERO | 49 | ~90 min | 3 |
+
+La causa está en el frontend, y el propio código la explica (`EntregasPanel.jsx`):
+
+```js
+// Cancela la orden en el servidor — sin esto la orden queda fantasma
+// (0 platillos, PREPARANDO) bloqueando el historial y el contador
+```
+
+El flujo del repartidor **crea la orden en la base al abrir el diálogo de "Nueva Entrega"**, antes de capturar ningún platillo. Si cierra el diálogo sin enviar a cocina, la interfaz cancela esa orden para no dejar un registro fantasma. Dos minutos de vida, cero platillos, las 103 veces.
+
+Es decir: `estatus = 'CANCELADA'` **no significa "se canceló una venta"**. En el 98% de los casos significa "se abrió un diálogo y se cerró sin usarlo". Es limpieza automática de la interfaz, no un evento de negocio.
+
+**Consecuencias, todas importantes:**
+
+1. **La "tasa de cancelación" no es un KPI de negocio.** Medida tal cual, es ~15% y no dice nada del restaurante. Las cancelaciones reales son 3 de 1,037 órdenes pagadas: 0.3%.
+2. **No hay que buscar explicaciones de negocio para las diferencias entre personas.** Los repartidores tienen tasas altas porque *su pantalla crea la orden antes*, no porque cancelen ventas. Un mesero y un repartidor con la misma disciplina producen números muy distintos.
+3. **Explica por qué las canceladas están vacías** (la trampa anterior): nunca tuvieron nada que perder. La pregunta "¿cuánto valía lo cancelado?" resulta ser casi irrelevante, no solo irrespondible.
+4. **Sí es una señal útil, pero de otra cosa.** 103 órdenes fantasma abiertas y abandonadas en unas semanas dice que el diálogo de entregas crea la orden demasiado pronto. Es un hallazgo de experiencia de uso, no de ventas.
+
+**Regla para cualquier vista o consulta:** si se va a hablar de cancelaciones, distinguir entre *órdenes abandonadas* (vacías, segundos de vida — ruido de interfaz) y *cancelaciones reales* (llegaron a tener platillos). Mezclarlas produce un número grande y sin significado, y peor, señala a personas por un comportamiento del software.
+
+Cómo separarlas:
+
+```sql
+-- Cancelaciones reales: llegaron a tener al menos un platillo
+SELECT COUNT(DISTINCT e.id_orden)
+FROM eventos_orden e
+JOIN ordenes o ON o.id_ordenes = e.id_orden
+WHERE o.estatus = 'CANCELADA' AND e.tipo_evento = 'PLATILLO_NUEVO';
+```
 
 **Cómo se arreglaría:** que `cancelar()` emita un evento `PLATILLO_CANCELADO` por cada renglón vivo antes de vaciar la orden, o que se conserve el `total` en un campo aparte. Es un cambio de código en `Orden.cancelar()` + `OrdenService`, no solo de esquema.
 

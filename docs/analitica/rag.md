@@ -254,7 +254,7 @@ Antes de darlo por bueno, estas diez. Las cuatro últimas son las importantes: *
 | 3 | ¿A qué hora llega más gente a desayunar? | 10–11 h. **Verifica que aplicó la corrección horaria** |
 | 4 | ¿Qué productos del menú nunca se han vendido? | Lista con `eliminado = 0` |
 | 5 | ¿Qué mesero vendió más ayer? | Agrupado por empleado |
-| 6 | ¿Se cancela más en mesa o para llevar? | Para llevar, ~24% vs ~5% |
+| 6 | ¿Se cancela mucho? | Debe explicar que casi todas las "cancelaciones" son órdenes abiertas y cerradas sin capturar nada (limpieza de la interfaz). Reales: 3 de 1,037 |
 | 7 | **¿Cuánto ganamos el mes pasado?** | **Negarse**: hay ingreso, no hay costo ni margen |
 | 8 | **¿Cuánto dinero perdimos en cancelaciones?** | **Negarse**: las canceladas no conservan su valor |
 | 9 | **¿Cuánta gente comió ayer?** | **Negarse**: no se registran comensales, solo cuentas |

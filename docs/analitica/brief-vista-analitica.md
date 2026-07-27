@@ -63,9 +63,11 @@ Complemento igual de útil: **los que no se venden**. Hay productos en el menú 
 
 Ventas por empleado y ticket promedio. Con una advertencia fuerte, abajo en "Cuidados".
 
-### 5. ¿Qué se está cancelando?
+### 5. ¿Cuánta comida salió de la cocina?
 
-Cuántas, de qué canal, de qué productos. **Nunca por persona sin el desglose por canal** (ver Cuidados).
+Platillos vendidos en el periodo. Es la carga real de trabajo de cocina, y no se deduce del número de órdenes: una cuenta puede llevar un platillo o doce.
+
+(Aquí iba originalmente "¿qué se está cancelando?". Se cayó al descubrir que las cancelaciones no miden lo que parecen — ver Cuidados.)
 
 ---
 
@@ -80,9 +82,9 @@ Una sola página, scroll vertical, tres bandas. Diseño decide la forma; esto es
 │                                                          │
 │  BANDA 1 — LOS NÚMEROS                                   │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐        │
-│  │ Ingreso │ │ Órdenes │ │ Ticket  │ │ Cancel. │        │
-│  │ $34,120 │ │   287   │ │  $119   │ │  8.2%   │        │
-│  │ ▲ +12%  │ │ ▲ +8%   │ │ ▲ +4%   │ │ ▼ -2pp  │        │
+│  │ Ingreso │ │ Órdenes │ │ Ticket  │ │Platillos│        │
+│  │ $34,120 │ │   287   │ │  $119   │ │   612   │        │
+│  │ ▲ +12%  │ │ ▲ +8%   │ │ ▲ +4%   │ │ ▲ +9%   │        │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘        │
 │                                                          │
 ├─────────────────────────────────────────────────────────┤
@@ -101,6 +103,9 @@ Una sola página, scroll vertical, tres bandas. Diseño decide la forma; esto es
 │  └──────────────────────┘ └──────────────────────┘      │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │ Menú muerto — productos sin ventas               │    │
+│  └─────────────────────────────────────────────────┘    │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ Órdenes abandonadas (informativo, discreto)      │    │
 │  └─────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -123,18 +128,19 @@ Opciones, en orden de preferencia:
 1. Que el rango por defecto sea "últimos 7 días" y no ofrecer nada anterior al 20 de julio.
 2. Si se muestra el histórico completo, marcar visualmente el corte con una anotación: *"antes de esta fecha: pruebas del sistema"*.
 
-### Cancelaciones: siempre con el canal a la vista
+### La tasa de cancelación NO es un KPI — no la pongas
 
-Los números reales:
+De 152 órdenes canceladas en el histórico, **solo 3 llegaron a tener un platillo**. Las otras 149 estaban vacías.
 
-| Vista | Resultado |
-|---|---|
-| Por persona | SRA.ANGELES 34%, HECTOR 13%, los meseros 2–8% |
-| Por canal | **Para Llevar 24%, Mesa 5%** |
+La causa es mecánica, no de negocio: el diálogo de "Nueva Entrega" crea la orden en la base **al abrirse**, antes de capturar nada. Si el repartidor lo cierra sin enviar a cocina, la interfaz cancela esa orden para no dejar un registro fantasma. Los repartidores acumulan 103 de estas, con vida promedio de **122 segundos** y cero platillos, siempre.
 
-Los dos primeros de la tabla por persona son los dos repartidores. La causa es el canal — pedidos telefónicos que no se concretan — no las personas.
+Entonces "cancelación" significa, casi siempre, *"se abrió un diálogo y se cerró"*. Es limpieza de interfaz.
 
-**Requisito:** el widget de cancelaciones muestra el desglose por tipo de orden en el mismo lugar donde muestra a las personas, o no muestra personas. Una vista que ponga a una empleada en rojo al 34% sin ese contexto va a producir una conversación injusta.
+**Requisitos, en orden:**
+
+1. **No pongas "Tasa de cancelación" en la banda 1.** Medida en crudo da ~15% y no significa nada. Las cancelaciones reales son 3 de 1,037: 0.3%. Un KPI destacado que no mide nada es peor que un espacio vacío.
+2. **Nunca compares personas con este número.** Un repartidor y un mesero igual de cuidadosos dan cifras muy distintas porque sus pantallas crean la orden en momentos distintos del flujo. Una vista que ponga a una empleada en rojo al 34% por esto va a producir una conversación injusta con una persona real, sobre un comportamiento del software.
+3. **Si se muestra algo**, que sea en la banda 3 y etiquetado como lo que es: *"Órdenes abandonadas"*, con una nota de que son órdenes abiertas y cerradas sin capturar nada. Es una señal de experiencia de uso —el diálogo crea la orden demasiado pronto— no una métrica de ventas.
 
 ### "Ventas por empleado" mide captura, no desempeño
 
@@ -144,9 +150,7 @@ Etiquétese el widget como *"Órdenes capturadas por empleado"*, no *"Ventas por
 
 ### El valor de lo cancelado no existe
 
-Las órdenes canceladas tienen total 0 y cero renglones. **No hay dato de "$X perdidos en cancelaciones".** Si diseño quiere ese widget, hay que decir que no; el dato no está y ponerlo en 0 sería peor que no ponerlo.
-
-Lo que sí: número y porcentaje de cancelaciones.
+Las órdenes canceladas tienen total 0 y cero renglones — porque, como explica el punto anterior, casi ninguna llegó a tener un platillo. **No hay dato de "$X perdidos en cancelaciones"**, y resulta que tampoco hay gran cosa que perder. Si el diseño lo pide, la respuesta es que no; ponerlo en $0 sería peor que no ponerlo.
 
 ### No hay margen, solo ingreso
 
@@ -180,28 +184,30 @@ Alimenta la banda 1. Incluye el periodo anterior equivalente para las variacione
     "ingreso": 34120.00,
     "ordenes": 287,
     "ticketPromedio": 118.89,
-    "ordenesCanceladas": 24,
-    "tasaCancelacion": 7.7,
+    "platillos": 612,
     "porServicio": { "desayuno": 8210.00, "comida": 25910.00 },
-    "porTipo":     { "loza": 26400.00, "llevar": 7720.00 }
+    "porTipo":     { "loza": 26400.00, "llevar": 7720.00 },
+    "ordenesAbandonadas": 24
   },
   "anterior": {
     "ingreso": 30460.00,
     "ordenes": 266,
     "ticketPromedio": 114.51,
-    "ordenesCanceladas": 26,
-    "tasaCancelacion": 8.9
+    "platillos": 561,
+    "ordenesAbandonadas": 26
   },
   "variacion": {
     "ingreso": 12.0,
     "ordenes": 7.9,
     "ticketPromedio": 3.8,
-    "tasaCancelacion": -1.2
+    "platillos": 9.1
   }
 }
 ```
 
-`variacion` viene en porcentaje, salvo `tasaCancelacion` que es diferencia en puntos porcentuales (por eso `-1.2` y no `-13%`). Diseño debe mostrarlo como "pp" o "puntos".
+`variacion` viene en porcentaje.
+
+`ordenesAbandonadas` son las órdenes que se abrieron y se cerraron sin capturar nada (`estatus = 'CANCELADA'` con cero platillos). **No es un KPI de negocio** y no va en la banda 1 — está en el contrato porque alimenta el widget informativo de la banda 3. Ver Cuidados.
 
 ### 2. `GET /admin/analitica/serie?desde=&hasta=&granularidad=dia|hora`
 
@@ -267,16 +273,15 @@ Con `granularidad=hora` — `clave` es la hora local 0–23, agregada sobre todo
       "ordenes": 240,
       "ingreso": 41200.00,
       "ticketPromedio": 171.67,
-      "canceladas": 19,
-      "tasaCancelacion": 7.9,
+      "platillos": 498,
       "porTipo": { "loza": 232, "llevar": 8 }
     }
   ],
-  "cancelacionesPorTipo": { "loza": 5.0, "llevar": 23.9 }
+  "abandonadas": { "MARELI": 17, "VALERIA": 17, "SRA.ANGELES": 51, "HECTOR": 47 }
 }
 ```
 
-`cancelacionesPorTipo` es el contexto obligatorio del que habla la sección de Cuidados. **Va en la misma respuesta para que sea difícil dibujar el widget sin él.**
+**`abandonadas` no se muestra junto a los empleados.** Va en la respuesta para que el widget informativo de órdenes abandonadas (banda 3) pueda existir, pero pintarlo como una columna al lado de cada persona es exactamente el error que describen los Cuidados: son cifras que dependen de qué pantalla usa cada rol, no de qué tan bien trabaja.
 
 ---
 

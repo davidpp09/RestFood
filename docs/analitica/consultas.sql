@@ -218,9 +218,17 @@ GROUP BY u.id_usuarios, u.nombre, u.rol
 ORDER BY ingreso DESC;
 
 
--- 4.2 Cancelaciones por empleado, con tasa.
---     Una tasa alta no acusa a nadie: puede ser el turno, la zona o la mesa.
---     Es una senal para preguntar, no una conclusion.
+-- 4.2 Ordenes abandonadas por empleado. LEER ANTES DE USAR.
+--
+--     Esto NO mide cancelaciones de ventas. El dialogo de Nueva Entrega crea
+--     la orden en la base al abrirse; si se cierra sin enviar a cocina, la
+--     interfaz la cancela para no dejar una orden fantasma. De 152 canceladas
+--     historicas, solo 3 llegaron a tener un platillo.
+--
+--     Por eso los repartidores salen altisimo (103 casos, vida promedio 122
+--     segundos, cero platillos siempre) y los meseros bajo: es la pantalla,
+--     no la persona. NO uses esta consulta para comparar desempenno.
+--     Para cancelaciones reales, ver 4.5.
 SELECT u.nombre                                                              AS empleado,
        u.rol,
        COUNT(*)                                                              AS ordenes_totales,
@@ -232,6 +240,24 @@ JOIN usuarios u ON u.id_usuarios = o.id_usuario
 WHERE o.fecha_apertura >= '2026-07-20'
 GROUP BY u.id_usuarios, u.nombre, u.rol
 ORDER BY pct_cancelacion DESC;
+
+
+-- 4.5 Cancelaciones REALES: ordenes que llegaron a tener platillos y aun asi
+--     se cancelaron. Estas si son eventos de negocio. Son 3 en todo el
+--     historico, contra 149 abandonos vacios.
+SELECT o.id_ordenes,
+       DATE(o.fecha_apertura - INTERVAL 6 HOUR) AS dia,
+       o.tipo, o.servicio,
+       u.nombre                                 AS empleado,
+       u.rol,
+       COUNT(e.id_evento)                       AS platillos_capturados,
+       ROUND(SUM(e.precio_unitario * e.cantidad_nueva), 2) AS valor_estimado
+FROM ordenes o
+JOIN usuarios u      ON u.id_usuarios = o.id_usuario
+JOIN eventos_orden e ON e.id_orden    = o.id_ordenes AND e.tipo_evento = 'PLATILLO_NUEVO'
+WHERE o.estatus = 'CANCELADA'
+GROUP BY o.id_ordenes, dia, o.tipo, o.servicio, u.nombre, u.rol
+ORDER BY dia DESC;
 
 
 -- 4.3 Que platillos se cancelan mas (desde la bitacora de eventos).

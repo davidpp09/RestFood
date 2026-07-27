@@ -62,13 +62,20 @@ SELECT HOUR(fecha_apertura - INTERVAL 6 HOUR), COUNT(*) FROM ordenes GROUP BY 1;
 
 México eliminó el horario de verano en 2022, así que el desfase es fijo de 6 horas todo el año. No hay que preocuparse por DST.
 
-### 2. Las órdenes canceladas pierden su valor
+### 2. Casi ninguna "cancelación" es una cancelación
 
-Las 149 órdenes canceladas tienen `total = 0` y **cero renglones en `orden_detalle`**. No se puede saber cuánto valía lo que se canceló consultando esas tablas.
+De **152 órdenes canceladas, solo 3 llegaron a tener un platillo**. Las otras 149 nacieron y murieron vacías, con `total = 0` y cero renglones.
 
-Solo 3 de las 149 dejaron rastro en `eventos_orden`. La cifra reconstruible es $350 — que no significa que se cancelaran $350, significa que **el resto es irrecuperable**.
+No es que se pierda el dato: es que nunca hubo nada que perder. El flujo de "Nueva Entrega" **crea la orden en la base al abrir el diálogo**, antes de capturar nada; si el repartidor cierra sin enviar a cocina, la interfaz la cancela para no dejar una orden fantasma. Los repartidores acumulan 103 de estas, con una vida promedio de **122 segundos** y cero platillos, siempre.
 
-Consecuencia práctica: *"¿cuánto dinero perdimos en cancelaciones?"* es una pregunta que **hoy no se puede responder**. Se puede contar cuántas cancelaciones hubo y de quién, pero no cuánto valían. Está en la lista de mejoras al final del catálogo.
+Entonces `estatus = 'CANCELADA'` significa, casi siempre, *"se abrió un diálogo y se cerró sin usarlo"*. Es limpieza de la interfaz, no un evento de negocio.
+
+Dos consecuencias:
+
+- **La tasa de cancelación no sirve como KPI.** Medida en crudo da ~15% y no dice nada del restaurante. Las cancelaciones reales son 3 de 1,037 pagadas: 0.3%.
+- **Nunca compares personas con este número.** Un repartidor y un mesero con la misma disciplina dan cifras muy distintas, porque sus pantallas crean la orden en momentos diferentes del flujo.
+
+Sí es una señal útil, pero de otra cosa: 103 órdenes fantasma dicen que el diálogo de entregas crea la orden demasiado pronto. Es un hallazgo de experiencia de uso.
 
 ### 3. Los precios del histórico son fotos, no referencias
 
@@ -87,7 +94,7 @@ Sin tocar una línea de código:
 - Ranking de productos por unidades e ingreso; productos que nunca se venden
 - Ingreso y mix por categoría
 - Ventas por empleado, ticket promedio por empleado
-- Cancelaciones por mesero y qué platillos se cancelan más
+- Órdenes abandonadas (el "ruido" de la trampa 2) — útil como señal de uso, no de ventas
 - Rotación de mesas y duración de las cuentas
 - Comentarios de los clientes (234 líneas con texto libre, 168 distintos)
 - Reconstrucción minuto a minuto de cualquier cuenta, desde `eventos_orden`
@@ -95,7 +102,7 @@ Sin tocar una línea de código:
 ## Lo que NO se puede responder hoy
 
 - **Margen o utilidad** — no hay costo de los platillos. Solo ingreso. (Las tablas de inventario de la V2 abren esta puerta, pero están vacías.)
-- **Valor de lo cancelado** — ver trampa 2.
+- **Tasa de cancelación como métrica de negocio** — ver trampa 2: el número existe pero mide otra cosa.
 - **Forma de pago** — no se registra efectivo vs tarjeta.
 - **Número de comensales** — no se captura, así que no hay "gasto por persona", solo por cuenta.
 - **Tiempo de cocina** — no hay marca de "platillo listo", solo apertura y cierre de la orden.
