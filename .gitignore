@@ -38,4 +38,5 @@ build/
 backend.log
 
 # Worktrees y estado local de Claude Code — nunca van al repo.
+# El 2026-07-27 un `git add -A` metió .claude/worktrees/ como gitlink en un PR.
 .claude/
