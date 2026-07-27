@@ -13,7 +13,18 @@ public enum TipoMovimiento {
     COMPRA(1),
     MERMA(-1),
     VENTA(-1),
-    AJUSTE(0);
+    AJUSTE(0),
+    /**
+     * Deshace un movimiento anterior porque cambió su causa, no porque el
+     * número estuviera mal. Hoy solo la usa la cancelación de un platillo ya
+     * mandado a cocina: revierte la VENTA para que la MERMA ocupe su lugar.
+     *
+     * Existe separada de AJUSTE a propósito. AJUSTE es la diferencia de un
+     * conteo físico — lo que NADIE pudo explicar, y el número por el que existe
+     * el reporte de teórico contra real. Una reversa está explicada al detalle,
+     * así que mezclarlas inflaba la varianza con ruido.
+     */
+    REVERSA(0);
 
     private final int signoEsperado;
 

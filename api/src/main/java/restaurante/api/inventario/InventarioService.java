@@ -55,6 +55,10 @@ public class InventarioService {
             // Las ventas las genera el descuento automático de la Fase 2, no una persona.
             throw new ValidacionException("Los movimientos de VENTA los genera el sistema, no se capturan a mano");
         }
+        if (datos.tipo() == TipoMovimiento.REVERSA) {
+            // Las genera la cancelación de un platillo, no una persona.
+            throw new ValidacionException("Las REVERSA las genera el sistema al cancelar un platillo");
+        }
         if (datos.tipo() == TipoMovimiento.AJUSTE) {
             // Los ajustes salen de un conteo físico, que es lo que los justifica.
             throw new ValidacionException("Los AJUSTE se generan al registrar un conteo físico");

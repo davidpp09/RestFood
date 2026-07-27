@@ -145,7 +145,11 @@ class ConsumoInventarioServiceTest {
         var movs = movimientosGuardados(2);
 
         var reversa = movs.get(0);
-        assertEquals(TipoMovimiento.AJUSTE, reversa.getTipo());
+        assertEquals(TipoMovimiento.REVERSA, reversa.getTipo(),
+                "REVERSA y no AJUSTE: AJUSTE está reservado para lo que un conteo "
+                        + "físico no pudo explicar, y es el número del reporte teórico "
+                        + "contra real. Una reversa está explicada, y mezclarlas infla "
+                        + "la varianza con ruido — se detectó viendo el reporte real.");
         assertEquals(4, reversa.getCantidad(), "Revierte las 4 porciones que se habían contado como venta.");
 
         var merma = movs.get(1);

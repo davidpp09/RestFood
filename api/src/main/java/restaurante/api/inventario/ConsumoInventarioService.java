@@ -82,7 +82,9 @@ public class ConsumoInventarioService {
             String referencia = "Comanda #" + orden.getNumero_comanda() + " — " + producto.getNombre();
 
             // 1. Revierte la VENTA: el consumo no fue una venta.
-            registrar(linea, TipoMovimiento.AJUSTE, consumo, orden, usuario,
+            //    REVERSA y no AJUSTE — ver TipoMovimiento: AJUSTE está reservado
+            //    para lo que un conteo físico no pudo explicar, y esto se explica solo.
+            registrar(linea, TipoMovimiento.REVERSA, consumo, orden, usuario,
                     "Reversa de venta por cancelación. " + referencia);
             // 2. Lo reclasifica como merma: se cocinó y se tiró.
             registrar(linea, TipoMovimiento.MERMA, -consumo, orden, usuario,

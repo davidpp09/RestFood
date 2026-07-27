@@ -197,13 +197,22 @@ public class OrdenService {
                             modificado.getPrecio_unitario(),
                             modificado.getComentarios(), platillo.comentarios()));
 
-                    // Solo el INCREMENTO consume insumo: lo anterior ya se descontó
-                    // cuando se mandó a cocina la primera vez. Y si la cantidad BAJA
-                    // no se devuelve nada — esa comida ya se cocinó. Devolverla haría
-                    // que el teórico mintiera a favor, que es justo lo que este
-                    // sistema existe para evitar.
+                    // Solo el INCREMENTO consume insumo nuevo: lo anterior ya se
+                    // descontó cuando se mandó a cocina la primera vez.
+                    //
+                    // Y si la cantidad BAJA, esos platillos ya se cocinaron: no
+                    // vuelven al inventario, pero tampoco pueden seguir contados como
+                    // venta. Se reclasifican como merma, igual que una cancelación
+                    // completa — es la misma comida tirada y tiene que verse en el
+                    // mismo lugar. Sin esto, bajar de 5 a 2 escondería tres platillos
+                    // desperdiciados dentro de las ventas.
                     int incremento = platillo.cantidad() - modificado.getCantidad();
-                    consumoInventario.descontarPorComanda(producto, incremento, orden, usuario);
+                    if (incremento > 0) {
+                        consumoInventario.descontarPorComanda(producto, incremento, orden, usuario);
+                    } else if (incremento < 0) {
+                        consumoInventario.reclasificarCancelacionComoMerma(
+                                producto, -incremento, orden, usuario);
+                    }
 
                     modificado.actualizarPlatillo(platillo);
                     ticketCocina.add(new DatosPlatilloTicket("🟡 MODIFICADO", producto.getNombre(), platillo.cantidad(), platillo.comentarios(), impresora));
