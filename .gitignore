@@ -36,3 +36,6 @@ build/
 ### VS Code ###
 .vscode/
 backend.log
+
+# Worktrees y estado local de Claude Code — nunca van al repo.
+.claude/

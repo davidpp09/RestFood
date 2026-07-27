@@ -12,6 +12,7 @@ import restaurante.api.inventario.*;
 import restaurante.api.usuario.Usuario;
 
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -111,6 +112,25 @@ public class InventarioController {
     @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'COCINA')")
     public ResponseEntity<List<DatosExistencia>> existencias() {
         return ResponseEntity.ok(service.existencias());
+    }
+
+    // ---------- Teórico contra real (Fase 2) ----------
+
+    /**
+     * El reporte por el que existe todo este frente. Sin fechas, toma el mes en
+     * curso: es el periodo con el que se piensa la operación.
+     *
+     * Solo ADMIN y DEV. No es un dato para la cocina — es el que se usa para
+     * preguntarle a la cocina.
+     */
+    @GetMapping("/reportes/teorico-real")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
+    public ResponseEntity<List<DatosTeoricoReal>> teoricoContraReal(
+            @RequestParam(required = false) LocalDate desde,
+            @RequestParam(required = false) LocalDate hasta) {
+        LocalDate d = desde != null ? desde : LocalDate.now().withDayOfMonth(1);
+        LocalDate h = hasta != null ? hasta : LocalDate.now();
+        return ResponseEntity.ok(service.teoricoContraReal(d, h));
     }
 
     // ---------- Recetas (qué platillo consume qué insumo) ----------

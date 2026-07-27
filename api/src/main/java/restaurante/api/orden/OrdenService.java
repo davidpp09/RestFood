@@ -53,6 +53,12 @@ public class OrdenService {
     private SimpMessagingTemplate messagingTemplate;
     @Autowired
     private restaurante.api.infra.impresora.ImpresoraService impresoraService;
+
+    // Fase 2 del inventario: descuenta los insumos al mandar comanda a cocina.
+    // Ver ConsumoInventarioService — nunca lanza por falta de existencia, así
+    // que no puede impedir que salga una comanda.
+    @Autowired
+    private restaurante.api.inventario.ConsumoInventarioService consumoInventario;
     @Autowired
     private EventoOrdenRepository eventoOrdenRepository;
 
@@ -149,6 +155,10 @@ public class OrdenService {
                         platilloDb.getCantidad(), 0,
                         platilloDb.getPrecio_unitario(),
                         platilloDb.getComentarios(), null));
+                // El platillo ya se mandó a cocina, así que la carne ya se usó:
+                // no vuelve al inventario, se reclasifica de venta a merma.
+                consumoInventario.reclasificarCancelacionComoMerma(
+                        platilloDb.getProducto(), platilloDb.getCantidad(), orden, usuario);
                 ordenDetalleRepository.delete(platilloDb);
                 ticketCocina.add(new DatosPlatilloTicket("🔴 CANCELADO", platilloDb.getProducto().getNombre(), 0, "Cancelado por el mesero", impresora));
             }
@@ -166,6 +176,8 @@ public class OrdenService {
                         null, platillo.cantidad(),
                         nuevoDetalle.getPrecio_unitario(),
                         null, platillo.comentarios()));
+                // Platillo nuevo: se descuenta su cantidad completa.
+                consumoInventario.descontarPorComanda(producto, platillo.cantidad(), orden, usuario);
                 ticketCocina.add(new DatosPlatilloTicket("🟢 NUEVO", producto.getNombre(), platillo.cantidad(), platillo.comentarios(), impresora));
             } else {
                 var modificado = ordenDetalleRepository.findById(platillo.id_detalle())
@@ -184,6 +196,15 @@ public class OrdenService {
                             modificado.getCantidad(), platillo.cantidad(),
                             modificado.getPrecio_unitario(),
                             modificado.getComentarios(), platillo.comentarios()));
+
+                    // Solo el INCREMENTO consume insumo: lo anterior ya se descontó
+                    // cuando se mandó a cocina la primera vez. Y si la cantidad BAJA
+                    // no se devuelve nada — esa comida ya se cocinó. Devolverla haría
+                    // que el teórico mintiera a favor, que es justo lo que este
+                    // sistema existe para evitar.
+                    int incremento = platillo.cantidad() - modificado.getCantidad();
+                    consumoInventario.descontarPorComanda(producto, incremento, orden, usuario);
+
                     modificado.actualizarPlatillo(platillo);
                     ticketCocina.add(new DatosPlatilloTicket("🟡 MODIFICADO", producto.getNombre(), platillo.cantidad(), platillo.comentarios(), impresora));
                 }
