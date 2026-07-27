@@ -27,10 +27,30 @@ ESTADO_CI="$(gh api "repos/davidpp09/RestFoodB/commits/$SHA/check-runs" \
 [[ "$ESTADO_CI" == "success" ]] || die "el check 'tests' del commit $SHA no está en verde (estado: $ESTADO_CI)"
 
 # 3. Construir el artefacto
-log "construyendo jar de $SHA..."
-(cd "$API_DIR" && ./mvnw -B -q package -Dtest='!RestApiApplicationTests' -Dsurefire.failIfNoSpecifiedTests=false)
+#
+# `clean` NO es opcional. Sin él, target/classes conserva archivos de ramas que
+# se compilaron antes en este mismo directorio, y `package` los mete en el jar
+# aunque no existan en main. El 2026-07-27 eso puso en produccion una migracion
+# de una rama SIN FUSIONAR (V2, inventario): llevaba dos dias en target/ desde
+# un build del 25, y viajo dentro del jar de un commit que no la contiene.
+#
+# La consecuencia no fue el jar, fue el rollback: la base quedo en una version
+# de Flyway que las releases anteriores no conocen, asi que rollback.sh habria
+# dejado el backend sin arrancar. Un despliegue tiene que depender solo de lo
+# que esta en el commit, y sin `clean` depende ademas de que hizo el ultimo que
+# compilo aqui.
+log "construyendo jar de $SHA (build limpio)..."
+(cd "$API_DIR" && ./mvnw -B -q clean package -Dtest='!RestApiApplicationTests' -Dsurefire.failIfNoSpecifiedTests=false)
 JAR="$(ls "$API_DIR"/target/api-*.jar | grep -v '\.original$' | head -1)"
 [[ -f "$JAR" ]] || die "no se encontró el jar en target/"
+
+# Red de seguridad: que las migraciones del jar sean EXACTAMENTE las del commit.
+# Si alguna vez vuelven a divergir, el deploy se detiene aqui en vez de que lo
+# descubra Flyway contra la base del restaurante.
+MIG_COMMIT="$(git ls-tree -r HEAD --name-only | grep -c '^api/src/main/resources/db/migration/V')"
+MIG_JAR="$(unzip -l "$JAR" | grep -c 'BOOT-INF/classes/db/migration/V')"
+[[ "$MIG_COMMIT" == "$MIG_JAR" ]] || die "el jar tiene $MIG_JAR migraciones y el commit $MIG_COMMIT — build sucio, aborto"
+log "migraciones verificadas: $MIG_JAR, las mismas que el commit"
 
 # 4. Guardar release versionada y apuntar current.jar (previous.jar queda para rollback)
 mkdir -p "$RELEASES_DIR"
