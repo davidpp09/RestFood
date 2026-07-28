@@ -330,7 +330,20 @@ public class ImpresoraService {
 
     /** Fila de 48 columnas con texto a la izquierda y algo alineado a la derecha. */
     private static String filaTicket(String izquierda, String derecha) {
-        int anchoIzq = 48 - derecha.length() - 1;
+        return filaAncho(izquierda, derecha, 48);
+    }
+
+    /**
+     * Igual que {@link #filaTicket}, pero con el ancho como parámetro: a fuente
+     * doble (FontSize._2) en papel de 80mm solo caben 24 columnas, no 48, así que
+     * una fila armada a 48 se partiría en dos renglones.
+     * Visible para pruebas.
+     */
+    static String filaAncho(String izquierda, String derecha, int ancho) {
+        int anchoIzq = ancho - derecha.length() - 1;
+        // Si lo de la derecha ya llena la fila, se imprime solo eso: es el dato
+        // que importa (el importe), y "%-0s" ni siquiera es un formato válido.
+        if (anchoIzq <= 0) return derecha;
         if (izquierda.length() > anchoIzq) izquierda = izquierda.substring(0, anchoIzq);
         return String.format("%-" + anchoIzq + "s %s", izquierda, derecha);
     }
@@ -350,7 +363,9 @@ public class ImpresoraService {
 
     // Ticket compacto (2026-07-16, pedido de David): mínimo papel — encabezado de
     // una línea, cada platillo en una sola línea con su importe, total y despedida.
-    private void escribirTicketCliente(EscPos escpos, DatosRespuestaCuenta ticket) throws Exception {
+    // Visible para pruebas: así el test arma el ticket contra un flujo en memoria
+    // y revisa los bytes ESC/POS, sin necesidad de una impresora física.
+    void escribirTicketCliente(EscPos escpos, DatosRespuestaCuenta ticket) throws Exception {
         Style centroNegrita = new Style()
                 .setFontSize(Style.FontSize._1, Style.FontSize._1)
                 .setJustification(EscPosConst.Justification.Center)
@@ -363,8 +378,11 @@ public class ImpresoraService {
         Style normal = new Style()
                 .setFontSize(Style.FontSize._1, Style.FontSize._1);
 
-        Style negrita = new Style()
-                .setFontSize(Style.FontSize._1, Style.FontSize._1)
+        // Total en doble ancho y alto (pedido de David 2026-07-28): a fuente
+        // normal las meseras confundían el 0 con el 8 al cobrar. El ancho doble
+        // es el que separa esos dos dígitos; el alto solo acompaña.
+        Style totalGrande = new Style()
+                .setFontSize(Style.FontSize._2, Style.FontSize._2)
                 .setBold(true);
 
         String rayita = "-".repeat(48);
@@ -397,7 +415,8 @@ public class ImpresoraService {
         }
 
         escpos.writeLF(rayita);
-        escpos.writeLF(negrita, filaTicket("TOTAL", dinero(ticket.total())));
+        // A doble tamaño la fila mide 24 columnas, no 48 (ver filaAncho).
+        escpos.writeLF(totalGrande, filaAncho("TOTAL", dinero(ticket.total()), 24));
         escpos.feed(1);
         escpos.writeLF(centro, "!Vuelva pronto!");
     }
