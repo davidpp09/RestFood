@@ -19,11 +19,7 @@ public record DatosRespuestaProducto(
                 producto.getPrecio_comida(),
                 producto.getPrecio_desayuno(),
                 producto.getDisponibilidad(),
-                new DatosRespuestaCategoria(
-                        producto.getCategoria().getId_categorias(),
-                        producto.getCategoria().getNombre(),
-                        producto.getCategoria().getImpresora()
-                )
+                new DatosRespuestaCategoria(producto.getCategoria())
         );
     }
 }
