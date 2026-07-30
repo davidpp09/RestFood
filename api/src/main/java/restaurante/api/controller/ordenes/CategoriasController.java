@@ -27,7 +27,7 @@ public class CategoriasController {
     @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'REPARTIDOR')")
     public ResponseEntity<List<DatosRespuestaCategoria>> listar() {
         var lista = repository.findAll().stream()
-                .map(c -> new DatosRespuestaCategoria(c.getId_categorias(), c.getNombre(), c.getImpresora()))
+                .map(DatosRespuestaCategoria::new)
                 .toList();
         return ResponseEntity.ok(lista);
     }
@@ -37,11 +37,7 @@ public class CategoriasController {
     @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<DatosRespuestaCategoria> registrar(@RequestBody @Valid DatosRegistroCategoria datosRegistroCategoria, UriComponentsBuilder uriComponentsBuilder) {
         Categoria categoria = repository.save(new Categoria(datosRegistroCategoria));
-        DatosRespuestaCategoria datosRespuesta = new DatosRespuestaCategoria(
-                categoria.getId_categorias(),
-                categoria.getNombre(),
-                categoria.getImpresora()
-        );
+        DatosRespuestaCategoria datosRespuesta = new DatosRespuestaCategoria(categoria);
         URI url = uriComponentsBuilder.path("/categorias/{id}").buildAndExpand(categoria.getId_categorias()).toUri();
         return ResponseEntity.created(url).body(datosRespuesta);
     }
