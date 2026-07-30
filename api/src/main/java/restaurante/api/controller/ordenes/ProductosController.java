@@ -91,9 +91,16 @@ public class ProductosController {
     public ResponseEntity<?> actualizarDia(@PathVariable Long id, @RequestBody DatosActualizacionDia datos) {
         Producto producto = repository.findById(id).orElseThrow();
         if (Boolean.TRUE.equals(datos.disponibilidad()) && !producto.getDisponibilidad()) {
-            long activos = repository.countActivosPorCategoria(producto.getCategoria().getId_categorias());
-            if (activos >= 7) {
-                return ResponseEntity.badRequest().body("Máximo 7 platillos activos por categoría");
+            Categoria categoria = producto.getCategoria();
+            // El tope vive en la base (columna max_activos), no clavado aquí: el menú
+            // del día admite 5 porque su recuadro en el PDF tiene 5 renglones.
+            int tope = categoria.getMaxActivos() != null
+                    ? categoria.getMaxActivos()
+                    : Categoria.TOPE_POR_DEFECTO;
+            long activos = repository.countActivosPorCategoria(categoria.getId_categorias());
+            if (activos >= tope) {
+                return ResponseEntity.badRequest()
+                        .body("Máximo " + tope + " platillos activos en " + categoria.getNombre());
             }
         }
         producto.actualizarDia(datos);

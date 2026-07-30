@@ -110,6 +110,14 @@
             <artifactId>escpos-coffee</artifactId>
             <version>4.1.0</version>
         </dependency>
+        <!-- Genera el PDF del menú del día escribiendo sobre la plantilla de Canva.
+             Licencia Apache 2.0 (a diferencia de iText, que es AGPL y obligaría a
+             abrir este código o pagar licencia comercial). -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.3</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

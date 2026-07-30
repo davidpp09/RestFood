@@ -18,6 +18,21 @@ public interface ProductoRepository extends JpaRepository<Producto,Long> {
 
     Optional<Producto> findByNombre(String nombre);
 
+    /**
+     * Los platillos que hoy forman el menú del día, ya ordenados como salen en el
+     * PDF: por precio de menor a mayor. El nombre desempata para que dos platillos
+     * al mismo precio siempre salgan en el mismo orden (si no, el PDF cambiaría
+     * solo entre una descarga y otra).
+     * El LIKE cubre 'Comida del dia' y 'Comida del día'.
+     */
+    @Query("""
+            SELECT p FROM producto p JOIN FETCH p.categoria c
+            WHERE p.disponibilidad = true AND p.eliminado = false
+              AND c.nombre LIKE 'Comida del d%a'
+            ORDER BY p.precio_comida ASC, p.nombre ASC
+            """)
+    List<Producto> findActivosDelDia();
+
     @Modifying
     @Query("UPDATE producto p SET p.disponibilidad = false WHERE p.categoria.id_categorias = :categoriaId")
     void desactivarPorCategoria(@Param("categoriaId") Long categoriaId);
