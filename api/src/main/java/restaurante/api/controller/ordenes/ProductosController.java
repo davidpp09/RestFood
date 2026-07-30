@@ -9,7 +9,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.util.UriComponentsBuilder;
 import restaurante.api.categoria.Categoria;
 import restaurante.api.categoria.CategoriaRepository;
+import restaurante.api.infra.errores.RecursoNoEncontradoException;
+import restaurante.api.infra.errores.ValidacionException;
 import restaurante.api.producto.DatosActualizacionDia;
+import restaurante.api.producto.DatosNuevoPlatilloDia;
 import restaurante.api.producto.DatosActualizacionProducto;
 import restaurante.api.producto.DatosRegistroProducto;
 import restaurante.api.producto.DatosRespuestaProducto;
@@ -82,6 +85,80 @@ public class ProductosController {
         } else {
             repository.delete(producto);
         }
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Alta de un platillo del día por el repartidor.
+     *
+     * Es un endpoint aparte del POST /productos general a propósito: ese permite
+     * elegir categoría y crearía productos en cualquier parte de la carta. Aquí
+     * la categoría la resuelve el servidor, así que el permiso que se le da al
+     * repartidor es exactamente el que necesita y ni uno más.
+     *
+     * Nace APAGADO: dar de alta y poner en el menú de hoy son dos cosas. Si
+     * naciera activo se saltaría el tope de la categoría, que es justo lo que
+     * cabe en el recuadro del PDF.
+     */
+    @PostMapping("/dia")
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'REPARTIDOR')")
+    public ResponseEntity<DatosRespuestaProducto> registrarDelDia(
+            @RequestBody @Valid DatosNuevoPlatilloDia datos,
+            UriComponentsBuilder uriComponentsBuilder) {
+
+        Categoria categoriaDia = categoriaRepository.findCategoriaDelDia()
+                .orElseThrow(() -> new ValidacionException(
+                        "No existe la categoría \"Comida del día\": pídele al administrador que la cree"));
+
+        String nombre = datos.nombre().trim();
+
+        var existente = repository.findByNombre(nombre);
+        if (existente.isPresent()) {
+            Producto producto = existente.get();
+            if (!Boolean.TRUE.equals(producto.getEliminado())) {
+                throw new ValidacionException("Ya existe un platillo con ese nombre: " + producto.getNombre());
+            }
+            // Estaba archivado: se revive en vez de duplicarlo, para no llenar el
+            // catálogo de repetidos y no perder su historial de ventas.
+            producto.restaurar(
+                    new DatosRegistroProducto(nombre, datos.precio(), datos.precio(), false, categoriaDia.getId_categorias()),
+                    categoriaDia);
+            return ResponseEntity.ok(new DatosRespuestaProducto(producto));
+        }
+
+        var nuevo = new DatosRegistroProducto(
+                nombre, datos.precio(), datos.precio(), false, categoriaDia.getId_categorias());
+        Producto producto = repository.save(new Producto(nuevo, categoriaDia));
+
+        URI url = uriComponentsBuilder.path("/productos/{id}")
+                .buildAndExpand(producto.getId_productos()).toUri();
+        return ResponseEntity.created(url).body(new DatosRespuestaProducto(producto));
+    }
+
+    /**
+     * Archiva un platillo del día. Borrado suave siempre: el producto puede tener
+     * ventas viejas colgando y el historial no se toca.
+     *
+     * Solo funciona sobre la categoría del día — si no, este permiso serviría para
+     * que un repartidor borrara cualquier cosa de la carta.
+     */
+    @DeleteMapping("/dia/{id}")
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'REPARTIDOR')")
+    public ResponseEntity<Void> archivarDelDia(@PathVariable Long id) {
+        Producto producto = repository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("No existe el platillo " + id));
+
+        Categoria categoriaDia = categoriaRepository.findCategoriaDelDia()
+                .orElseThrow(() -> new ValidacionException("No existe la categoría \"Comida del día\""));
+
+        if (!categoriaDia.getId_categorias().equals(producto.getCategoria().getId_categorias())) {
+            throw new ValidacionException(
+                    "Desde aquí solo se archivan platillos del día, y ese es de " + producto.getCategoria().getNombre());
+        }
+
+        producto.marcarEliminado();
         return ResponseEntity.noContent().build();
     }
 
