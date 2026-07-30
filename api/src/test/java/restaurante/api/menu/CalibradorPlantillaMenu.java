@@ -38,15 +38,25 @@ class CalibradorPlantillaMenu {
     @Test
     @EnabledIfSystemProperty(named = "calibrar", matches = "true")
     void volcarTextoDelMenuGenerado() throws Exception {
-        var servicio = new restaurante.api.menu.MenuDiaService();
-        var platillos = List.of(
-                platilloDePrueba("Espinacas a la crema con queso doble crema", "90"),
-                platilloDePrueba("Tortitas de pollo en salsa roja", "100"),
-                platilloDePrueba("Estofado de tocino, zanahoria y cebollitas", "110"),
-                platilloDePrueba("Costilla de cerdo en salsa de mango habanero", "115"),
-                platilloDePrueba("Pechuga rellena en crema de almendra", "115"));
+        byte[] generado;
 
-        byte[] generado = servicio.generar(platillos);
+        // Con -Dpdf=<ruta> vuelca un PDF ya existente (por ejemplo el que devolvió
+        // el endpoint), en vez de generar uno nuevo. Sirve para comprobar la cadena
+        // completa: base de datos -> consulta -> PDF que viaja por HTTP.
+        String rutaExterna = System.getProperty("pdf");
+        if (rutaExterna != null) {
+            generado = java.nio.file.Files.readAllBytes(java.nio.file.Path.of(rutaExterna));
+            System.out.println(">>> Leyendo PDF externo: " + rutaExterna);
+        } else {
+            var servicio = new restaurante.api.menu.MenuDiaService();
+            var platillos = List.of(
+                    platilloDePrueba("Espinacas a la crema con queso doble crema", "90"),
+                    platilloDePrueba("Tortitas de pollo en salsa roja", "100"),
+                    platilloDePrueba("Estofado de tocino, zanahoria y cebollitas", "110"),
+                    platilloDePrueba("Costilla de cerdo en salsa de mango habanero", "115"),
+                    platilloDePrueba("Pechuga rellena en crema de almendra", "115"));
+            generado = servicio.generar(platillos);
+        }
 
         System.out.println("\n=== Texto de la pagina 2 del PDF GENERADO (y < 200) ===");
         try (PDDocument documento = Loader.loadPDF(generado)) {
