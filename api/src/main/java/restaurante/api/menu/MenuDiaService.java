@@ -59,7 +59,14 @@ public class MenuDiaService {
     /** El recuadro "Nuestra Comida del Día" está en la página 2 (índice 0). */
     private static final int INDICE_PAGINA = 1;
 
-    /** Renglones que rotan. Del 6 al 13 son fijos y no se tocan. */
+    /**
+     * Renglones que rotan. Debajo van 7 platillos fijos que no se tocan.
+     *
+     * Desde la plantilla del 2026-08-01 el recuadro del día viene VACÍO: Canva ya
+     * no exporta renglones de relleno, así que aquí no hay nada que borrar y solo
+     * se escribe. El borrado se conserva igualmente —cuesta poco y la plantilla
+     * puede volver a traer texto— pero ya no es lo que sostiene el resultado.
+     */
     public static final int RENGLONES = 5;
 
     /** Resolución de la vista previa en PNG: legible en una tablet sin pesar de más. */

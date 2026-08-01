@@ -169,27 +169,43 @@ class MenuDiaServiceTest {
         }
     }
 
-    // 🧪 TEST 5: el menú de ayer se borra de verdad, no se tapa.
-    // Si esto falla, el PDF se ve bien pero al copiar el texto salen los dos menús
-    // entreverados letra por letra.
+    // 🧪 TEST 5: en el recuadro del día no queda nada más que el menú de hoy.
+    //
+    // Desde la plantilla del 2026-08-01, Canva ya NO exporta los 5 renglones de
+    // relleno: el recuadro viene vacío y el servicio solo escribe. Antes venían
+    // con platillos de ejemplo y había que borrarlos, y este test comprobaba ese
+    // borrado. Como esa comprobación se quedaría sin nada que vigilar, aquí se
+    // comprueba lo que de verdad importa y sigue pudiendo romperse: que cada
+    // platillo del día salga UNA sola vez.
+    //
+    // Si algún día vuelve una plantilla con relleno y el borrado falla, el texto
+    // viejo y el nuevo quedan superpuestos: el PDF se ve casi bien, pero al
+    // copiarlo salen los dos menús entreverados. Eso es lo que se caza aquí.
     @Test
-    void generar_BorraDeVerdadLosPlatillosDeLaPlantilla() throws Exception {
+    void generar_DejaSoloElMenuDeHoyEnElRecuadro() throws Exception {
         byte[] pdf = servicio.generar(cincoPlatillos());
 
-        String pagina2 = String.join(" | ",
-                renglonesDePagina(pdf, 2).stream().map(Renglon::texto).toList());
+        List<String> renglones = renglonesDePagina(pdf, 2).stream().map(Renglon::texto).toList();
+        String pagina2 = String.join(" | ", renglones);
 
-        // Los 5 que traía la plantilla no deben quedar ni rastro.
-        List<String> deLaPlantilla = List.of(
+        for (Producto platillo : cincoPlatillos()) {
+            String enMayusculas = platillo.getNombre().toUpperCase();
+            long veces = renglones.stream().filter(r -> r.contains(enMayusculas)).count();
+
+            // 2 y no 1: el diseño va duplicado lado a lado para imprimir y cortar.
+            assertEquals(2, veces,
+                    "'" + enMayusculas + "' debería salir 2 veces (una por copia) y salió " + veces);
+        }
+
+        // Red de seguridad por si vuelve una plantilla con platillos de relleno.
+        List<String> deLaPlantillaVieja = List.of(
                 "MANITAS DE CERDO EN MORITA",
-                "POLLO EN SALSA RANCHERA",
                 "AGUACATE RELLENO DE ENSALADA RUSA",
-                "BISTEC EN SALSA VERDE CON NOPALES",
-                "FILETE EN SALSA DE MANGO");
+                "MILANESA DE POLLO A LA HAWAIANA");
 
-        for (String viejo : deLaPlantilla) {
+        for (String viejo : deLaPlantillaVieja) {
             assertFalse(pagina2.contains(viejo),
-                    "Quedó texto del menú anterior en el PDF: '" + viejo + "'");
+                    "Quedó texto de una plantilla anterior en el PDF: '" + viejo + "'");
         }
     }
 
