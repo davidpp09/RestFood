@@ -94,17 +94,20 @@ class MenuDiaServiceTest {
         }
     }
 
-    // 🧪 TEST 2: van en las mismas coordenadas que los renglones de la plantilla.
-    // Si esto falla, el texto sale desalineado o encima de otro renglón.
+    // 🧪 TEST 2: los 5 renglones caen donde deben, repartidos por todo el recuadro.
+    // Si esto falla, el texto sale desalineado, encima de otro renglón, o se mete
+    // en el bloque de platillos fijos de abajo.
     @Test
     void generar_RespetaLasCoordenadasDeLaPlantilla() throws Exception {
         byte[] pdf = servicio.generar(cincoPlatillos());
         List<Renglon> renglones = renglonesDePagina(pdf, 2);
 
-        // Calibradas con CalibradorPlantillaMenu: copia izquierda y copia derecha.
+        // Copia izquierda y copia derecha. La interlínea pasó de 13.5555 a 15.686
+        // el 2026-08-01: al quitarse la milanesa de la plantilla, los 5 renglones
+        // se repartieron por el espacio que quedó libre en vez de dejar un hueco.
         float[] xEsperada = {19.86f, 317.63f};
         float[] yPrimera = {91.89f, 93.47f};
-        float interlinea = 13.5555f;
+        float interlinea = 15.686f;
 
         for (int copia = 0; copia < 2; copia++) {
             for (int renglon = 0; renglon < MenuDiaService.RENGLONES; renglon++) {
