@@ -81,10 +81,22 @@ public class MenuDiaService {
     /**
      * Línea base de los 5 renglones que rotan, en coordenadas del PDF (desde
      * abajo). Primera fila: copia izquierda. Segunda: copia derecha.
+     *
+     * Recalculadas el 2026-08-01, paso de 13.55 a 15.69 pt. Al quitar la
+     * milanesa de la plantilla quedó un hueco de 10.56 pt entre el último
+     * platillo del día y el primero de los fijos; en vez de dejarlo vacío, los 5
+     * renglones se reparten por todo el espacio. El paso sale de dividir en 5 la
+     * distancia del primer renglón (758.19) al primer fijo (679.76), así que la
+     * separación con el bloque de abajo queda igual que la de dentro del bloque.
+     *
+     * Que el día respire más que los fijos es a propósito: junto con la negrita,
+     * es lo que hace que lo que cambia destaque sobre lo que nunca cambia.
+     *
+     * La copia derecha va 1.58 pt más abajo, como en la plantilla original.
      */
     private static final float[][] Y_RENGLON = {
-            {758.19f, 744.63f, 731.08f, 717.52f, 703.97f},
-            {756.61f, 743.06f, 729.50f, 715.95f, 702.39f}
+            {758.19f, 742.50f, 726.82f, 711.13f, 695.45f},
+            {756.61f, 740.92f, 725.24f, 709.55f, 693.87f}
     };
 
     /** Margen al comparar coordenadas: los acentos y las comas se salen un poco. */
@@ -96,8 +108,21 @@ public class MenuDiaService {
     /** Ancho al que se rellena con puntos para que los precios queden en columna. */
     private static final float ANCHO_LINEA = 263f;
 
+    /**
+     * En NEGRITA a propósito, desde el 2026-08-01.
+     *
+     * Los 7 platillos fijos de la plantilla vienen en negrita, y los del día se
+     * escribían en redonda: en el papel impreso lo que rota —que es lo que hay
+     * que mirar— se veía más flojo que lo que nunca cambia, justo al revés de lo
+     * que conviene. Lo pidió David: "quiero que esos resalten".
+     *
+     * Ojo si se cambia: la negrita es más ancha, así que {@link #tamanoQueQuepa}
+     * encoge la letra antes que con la redonda. Las medidas de ancho salen de
+     * esta misma fuente, así que el cálculo se ajusta solo — pero un nombre largo
+     * acaba en un tamaño menor que antes.
+     */
     private final PDType1Font helvetica =
-            new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
 
     public byte[] generar(List<Producto> platillos) throws IOException {
         try (PDDocument documento = Loader.loadPDF(leerPlantilla())) {
