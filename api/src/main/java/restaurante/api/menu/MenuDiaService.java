@@ -12,9 +12,12 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.springframework.stereotype.Service;
 import restaurante.api.producto.Producto;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,6 +62,9 @@ public class MenuDiaService {
     /** Renglones que rotan. Del 6 al 13 son fijos y no se tocan. */
     public static final int RENGLONES = 5;
 
+    /** Resolución de la vista previa en PNG: legible en una tablet sin pesar de más. */
+    private static final int DPI_VISTA_PREVIA = 150;
+
     /** Dónde empieza el texto en cada copia del diseño. */
     private static final float[] X_COPIA = {19.86f, 317.63f};
 
@@ -95,6 +101,30 @@ public class MenuDiaService {
 
             var salida = new ByteArrayOutputStream();
             documento.save(salida);
+            return salida.toByteArray();
+        }
+    }
+
+    /**
+     * El mismo menú, pero como imagen PNG.
+     *
+     * Existe por las tablets: el WebView de Android **no trae visor de PDF**, así
+     * que un {@code <iframe>} apuntando al PDF se queda en blanco y no hay error
+     * en ninguna parte. Una imagen sí se dibuja en cualquier navegador, sin
+     * depender de plugins ni de abrir otra aplicación.
+     *
+     * Es solo para MIRAR. Lo que se manda a imprimir sigue siendo el PDF, que es
+     * vectorial y no se pixela; este PNG a 150 DPI es para revisar en pantalla
+     * que no haya una errata antes de mandarlo.
+     */
+    public byte[] generarImagen(List<Producto> platillos) throws IOException {
+        try (PDDocument documento = Loader.loadPDF(generar(platillos))) {
+            BufferedImage imagen = new PDFRenderer(documento).renderImageWithDPI(INDICE_PAGINA, DPI_VISTA_PREVIA);
+
+            var salida = new ByteArrayOutputStream();
+            if (!ImageIO.write(imagen, "png", salida)) {
+                throw new IOException("No se pudo codificar el PNG de la vista previa del menú");
+            }
             return salida.toByteArray();
         }
     }
