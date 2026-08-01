@@ -18,7 +18,9 @@ import restaurante.api.producto.Producto;
 import restaurante.api.producto.ProductoRepository;
 
 import java.io.IOException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -127,7 +129,35 @@ public class MenuDiaController {
         return platillos;
     }
 
+    /**
+     * Los días en español, sin acentos y en minúscula.
+     *
+     * Escritos a mano y no con {@code getDisplayName(TextStyle.FULL, locale)} por
+     * dos razones: el nombre del archivo no debe depender de con qué idioma
+     * arranque la JVM, y "miércoles" y "sábado" llevan acento — que en el nombre
+     * de un archivo que viaja por WhatsApp a la papelería es una invitación a que
+     * llegue como "mi%C3%A9rcoles".
+     *
+     * {@link DayOfWeek#getValue()} va de 1 (lunes) a 7 (domingo).
+     */
+    private static final String[] DIAS = {
+            "lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"
+    };
+
+    /**
+     * El nombre con el que la papelería recibe el archivo: {@code sabado-01-08-26}.
+     *
+     * Lo pidió David así, con el día por delante: quien lo imprime necesita ver de
+     * un vistazo de qué día es el menú, y "menu-del-dia-2026-08-01" obliga a
+     * calcular el día de la semana en la cabeza.
+     */
     private String nombreDelArchivo() {
-        return "menu-del-dia-" + LocalDate.now();
+        return nombreDelArchivo(LocalDate.now());
+    }
+
+    /** Recibe el día en vez de leer el reloj, para poder comprobarlo con fechas fijas. */
+    static String nombreDelArchivo(LocalDate dia) {
+        return DIAS[dia.getDayOfWeek().getValue() - 1]
+                + dia.format(DateTimeFormatter.ofPattern("-dd-MM-yy"));
     }
 }
