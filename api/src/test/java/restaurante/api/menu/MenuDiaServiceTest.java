@@ -192,4 +192,30 @@ class MenuDiaServiceTest {
                     "Quedó texto del menú anterior en el PDF: '" + viejo + "'");
         }
     }
+
+    // 🧪 TEST 6: la vista previa en PNG sale de verdad.
+    // Existe porque el WebView de Android no dibuja PDFs y la vista previa salía
+    // en blanco en la tablet del repartidor. Si esto se rompe, vuelve el recuadro
+    // vacío — y como no da error, nadie se entera hasta que alguien lo mira.
+    @Test
+    void generarImagen_DevuelveUnPngDeLaPaginaDelMenu() throws Exception {
+        byte[] png = servicio.generarImagen(cincoPlatillos());
+
+        // Firma de un PNG: 0x89 'P' 'N' 'G'. Comprueba que salió una imagen de
+        // verdad y no, por ejemplo, el PDF sin convertir.
+        assertTrue(png.length > 4, "La imagen salió vacía");
+        assertEquals((byte) 0x89, png[0]);
+        assertEquals('P', png[1]);
+        assertEquals('N', png[2]);
+        assertEquals('G', png[3]);
+
+        var imagen = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(png));
+        assertTrue(imagen != null, "El PNG no se pudo volver a leer como imagen");
+
+        // A 150 DPI una hoja carta da del orden de 1275×1650. No se fija el número
+        // exacto —depende del tamaño de la plantilla— pero sí que no salga una
+        // miniatura ilegible en la tablet.
+        assertTrue(imagen.getWidth() > 800,
+                "La vista previa salió demasiado chica para leerse: " + imagen.getWidth() + "px de ancho");
+    }
 }

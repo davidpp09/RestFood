@@ -44,6 +44,13 @@ public class SecurityConfigurations {
                     // distinguir "la base está caída" de "no tengo permiso".
                     // Solo expone {"status":"UP"|"DOWN"} — sin detalles.
                     req.requestMatchers("/actuator/health").permitAll();
+                    // Descarga del menú del día. Sin JWT a propósito: la
+                    // credencial es el token de la query, porque una descarga
+                    // del navegador no manda la cabecera Authorization. El token
+                    // es aleatorio de 256 bits, vive 3 minutos y solo abre el
+                    // menú — el papel que de todos modos se le da a los
+                    // clientes. El porqué completo está en EnlacesDeDescarga.
+                    req.requestMatchers(HttpMethod.GET, "/menu-dia/descargar").permitAll();
                     req.anyRequest().authenticated();
                 })
                 // 2. Ejecuta tu filtro de JWT antes del de Spring 🛡️
