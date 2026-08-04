@@ -82,21 +82,30 @@ public class MenuDiaService {
      * Línea base de los 5 renglones que rotan, en coordenadas del PDF (desde
      * abajo). Primera fila: copia izquierda. Segunda: copia derecha.
      *
-     * Recalculadas el 2026-08-01, paso de 13.55 a 15.69 pt. Al quitar la
-     * milanesa de la plantilla quedó un hueco de 10.56 pt entre el último
-     * platillo del día y el primero de los fijos; en vez de dejarlo vacío, los 5
-     * renglones se reparten por todo el espacio. El paso sale de dividir en 5 la
-     * distancia del primer renglón (758.19) al primer fijo (679.76), así que la
+     * Recalculadas el 2026-08-04, paso de 15.69 a 13.77 pt. Al corregir en Canva
+     * los precios del filete y la mojarra, el bloque de los 7 fijos se re-acomodó
+     * solo: creció HACIA ARRIBA 9.12 pt (su interlínea pasó de 13.51 a 15.01) y
+     * se comió el hueco por abajo del recuadro del día. Con el paso anterior el
+     * 5º platillo del día caía ENCIMA del pozole en la copia derecha —salía
+     * ilegible, no descolocado—, así que los 5 renglones vuelven a apretarse.
+     *
+     * El paso sale igual que antes: dividir en 5 la distancia del primer renglón
+     * (758.19) al primer fijo, que ahora está en 689.32 y no en 679.76. Así la
      * separación con el bloque de abajo queda igual que la de dentro del bloque.
      *
-     * Que el día respire más que los fijos es a propósito: junto con la negrita,
-     * es lo que hace que lo que cambia destaque sobre lo que nunca cambia.
+     * Ojo: ahora el día va MÁS APRETADO que los fijos (13.77 contra 15.01), al
+     * revés que el 2026-08-01. No es una decisión de diseño, es lo que dejó la
+     * plantilla; la negrita sigue siendo lo que hace destacar al día. Si se
+     * quiere recuperar el aire, hay que arreglar la interlínea en Canva y volver
+     * a calibrar.
      *
-     * La copia derecha va 1.58 pt más abajo, como en la plantilla original.
+     * La copia derecha va 1.58 pt más abajo, como en la plantilla original. Los
+     * fijos NO llevan ese desfase —van a la misma altura en las dos copias—, así
+     * que la derecha es la que menos holgura tiene: es la que hay que mirar.
      */
     private static final float[][] Y_RENGLON = {
-            {758.19f, 742.50f, 726.82f, 711.13f, 695.45f},
-            {756.61f, 740.92f, 725.24f, 709.55f, 693.87f}
+            {758.19f, 744.42f, 730.64f, 716.87f, 703.09f},
+            {756.61f, 742.84f, 729.06f, 715.29f, 701.51f}
     };
 
     /** Margen al comparar coordenadas: los acentos y las comas se salen un poco. */
