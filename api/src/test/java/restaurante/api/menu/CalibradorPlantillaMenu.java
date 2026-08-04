@@ -162,8 +162,12 @@ class CalibradorPlantillaMenu {
 
         byte[] pdf = servicio.generar(platillos);
 
-        var destino = java.nio.file.Path.of(
-                System.getProperty("user.home"), "Desktop", "MUESTRA-menu-del-dia.pdf");
+        // En target/ y no en el Escritorio: la ruta estaba escrita como "Desktop"
+        // y este equipo lo tiene en español ("Escritorio"), así que la herramienta
+        // reventaba con NoSuchFileException justo cuando se necesitaba.
+        var destino = java.nio.file.Path.of("target", "MUESTRA-menu-del-dia.pdf")
+                .toAbsolutePath();
+        java.nio.file.Files.createDirectories(destino.getParent());
         java.nio.file.Files.write(destino, pdf);
 
         System.out.println("\n>>> Muestra generada en: " + destino);

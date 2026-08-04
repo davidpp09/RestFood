@@ -102,12 +102,12 @@ class MenuDiaServiceTest {
         byte[] pdf = servicio.generar(cincoPlatillos());
         List<Renglon> renglones = renglonesDePagina(pdf, 2);
 
-        // Copia izquierda y copia derecha. La interlínea pasó de 13.5555 a 15.686
-        // el 2026-08-01: al quitarse la milanesa de la plantilla, los 5 renglones
-        // se repartieron por el espacio que quedó libre en vez de dejar un hueco.
+        // Copia izquierda y copia derecha. La interlínea pasó de 15.686 a 13.774
+        // el 2026-08-04: la plantilla nueva trae el bloque de fijos 9.12 pt más
+        // arriba, así que el recuadro del día se quedó más chico.
         float[] xEsperada = {19.86f, 317.63f};
         float[] yPrimera = {91.89f, 93.47f};
-        float interlinea = 15.686f;
+        float interlinea = 13.774f;
 
         for (int copia = 0; copia < 2; copia++) {
             for (int renglon = 0; renglon < MenuDiaService.RENGLONES; renglon++) {
@@ -124,6 +124,61 @@ class MenuDiaServiceTest {
                         "Falta el renglón " + (renglon + 1) + " de la copia " + (copia + 1)
                         + " en x=" + x + " y=" + y);
             }
+        }
+    }
+
+    // 🧪 TEST 2b: el último platillo del día NO se encima con el primero de los fijos.
+    //
+    // Esto pasó de verdad el 2026-08-04: se cambiaron dos precios en Canva, el
+    // bloque de los 7 fijos se re-acomodó solo y subió 9.12 pt, y con las
+    // coordenadas de entonces el 5º platillo del día caía justo encima del
+    // POZOLE en la copia derecha. El menú salía ilegible.
+    //
+    // Ninguno de los otros tests lo cazó: el TEST 2 comprueba que los renglones
+    // del día estén donde se les dijo, y ahí estaban — el que se había movido
+    // era el bloque de abajo. Por eso aquí no se miran coordenadas fijas, sino
+    // la DISTANCIA entre lo que escribimos y lo que ya traía la plantilla.
+    @Test
+    void generar_DejaAireEntreElUltimoDelDiaYLosPlatillosFijos() throws Exception {
+        byte[] pdf = servicio.generar(cincoPlatillos());
+        List<Renglon> renglones = renglonesDePagina(pdf, 2);
+
+        // A 9 pt, dos renglones a menos de 9 pt de distancia ya se tocan.
+        float separacionMinima = 9f;
+
+        // El último platillo del día se busca por su NOMBRE y no por su x: los
+        // fijos arrancan en x=19.97, a 0.11 pt de la copia izquierda (x=19.86),
+        // así que por posición se colarían entre los del día.
+        String ultimoNombre = cincoPlatillos().get(MenuDiaService.RENGLONES - 1)
+                .getNombre().toUpperCase();
+
+        for (float x : new float[]{19.86f, 317.63f}) {
+            float ultimoDelDia = renglones.stream()
+                    .filter(r -> Math.abs(r.x() - x) < 0.5f)
+                    .filter(r -> r.texto().startsWith(ultimoNombre))
+                    .map(Renglon::y)
+                    .max(Float::compare)
+                    .orElseThrow(() -> new AssertionError(
+                            "No se encontró '" + ultimoNombre + "' en la copia de x=" + x
+                            + ". O no se escribió, o se fundió con el renglón de abajo."));
+
+            // El primer fijo de la plantilla. Va ~0.1 pt a la derecha del texto
+            // que escribimos, así que se busca por el nombre, no por la x.
+            float primerFijo = renglones.stream()
+                    .filter(r -> r.texto().contains("POZOLE DE POLLO O CERDO"))
+                    .filter(r -> r.y() > ultimoDelDia - separacionMinima)
+                    .map(Renglon::y)
+                    .min(Float::compare)
+                    .orElseThrow(() -> new AssertionError(
+                            "No se encontró el POZOLE por debajo del último platillo del día."
+                            + " Si están tan encima que el extractor los fundió en un solo"
+                            + " renglón, el menú ya salió ilegible."));
+
+            assertTrue(primerFijo - ultimoDelDia >= separacionMinima,
+                    "En la copia de x=" + x + " el último platillo del día (y=" + ultimoDelDia
+                    + ") queda a solo " + (primerFijo - ultimoDelDia) + " pt del POZOLE (y="
+                    + primerFijo + "). Se van a encimar al imprimir."
+                    + " Recalibra Y_RENGLON con CalibradorPlantillaMenu.");
         }
     }
 
@@ -161,7 +216,7 @@ class MenuDiaServiceTest {
         List<Renglon> renglones = renglonesDePagina(pdf, 2);
 
         // Los renglones 3, 4 y 5 de la copia izquierda deben quedar sin nada escrito.
-        float[] yVacios = {119.00f, 132.56f, 146.11f};
+        float[] yVacios = {119.44f, 133.21f, 146.99f};
         for (float y : yVacios) {
             boolean hayAlgo = renglones.stream().anyMatch(r ->
                     Math.abs(r.x() - 19.86f) < 1f
