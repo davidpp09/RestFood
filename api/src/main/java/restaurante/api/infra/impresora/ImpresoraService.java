@@ -31,7 +31,14 @@ public class ImpresoraService {
     private static final String COCINA_2      = "COCINA_2";
 
     // Papel 80mm a fuente normal ≈ 48 columnas (58mm serían 32)
-    private static final String SEPARADOR = "=".repeat(48);
+    private static final int ANCHO_TICKET = 48;
+    private static final String SEPARADOR = "=".repeat(ANCHO_TICKET);
+
+    // El ticket de cierre le cede una franja del margen derecho al nombre de la
+    // mesera, que baja letra por renglón (pedido de David 2026-08-11). Son 3
+    // espacios de aire y la columna 48 para la letra.
+    private static final int ANCHO_COLUMNA_NOMBRE = 4;
+    private static final int ANCHO_CONTENIDO = ANCHO_TICKET - ANCHO_COLUMNA_NOMBRE;
 
     @Value("${impresora.cocina1.nombre}")
     private String nombreCocina1;
@@ -348,10 +355,69 @@ public class ImpresoraService {
         return String.format("%-" + anchoIzq + "s %s", izquierda, derecha);
     }
 
-    /** Fila de 48 columnas: producto + precio unitario + importe (32+8+8). */
-    private static String filaTicket3(String izquierda, String unitario, String importe) {
-        if (izquierda.length() > 32) izquierda = izquierda.substring(0, 32);
-        return String.format("%-32s%8s%8s", izquierda, unitario, importe);
+    /**
+     * Ancho de cada columna de dinero. Eran 8 y estaban desperdiciadas: el precio
+     * más caro de la carta es $200 y el importe más alto jamás cobrado en un
+     * renglón fue $800 — cuatro caracteres. Bajarlas a 6 es lo que deja que el
+     * nombre del platillo conserve sus 32 columnas después de cederle 4 al
+     * nombre de la mesera; si no, 30 platillos más saldrían cortados.
+     */
+    private static final int ANCHO_IMPORTE = 6;
+
+    /**
+     * Fila de producto + precio unitario + importe, con el ancho total como
+     * parámetro (48 normalmente, 44 cuando el nombre de la mesera baja por la
+     * orilla derecha).
+     *
+     * Si algún día un importe no cupiera en sus 6 columnas, el espacio se le
+     * quita al nombre del platillo —que de todos modos ya viene recortado— y
+     * nunca a la fila: una fila más ancha que el papel se parte en dos renglones
+     * y descuadra la columna del nombre.
+     *
+     * Visible para pruebas.
+     */
+    static String filaTicket3(String izquierda, String unitario, String importe, int ancho) {
+        int anchoUnitario = Math.max(ANCHO_IMPORTE, unitario.length() + 1);
+        int anchoImporte = Math.max(ANCHO_IMPORTE, importe.length() + 1);
+        int anchoIzq = ancho - anchoUnitario - anchoImporte;
+        if (anchoIzq <= 0) return (unitario + " " + importe).trim();
+        if (izquierda.length() > anchoIzq) izquierda = izquierda.substring(0, anchoIzq);
+        return String.format("%-" + anchoIzq + "s%" + anchoUnitario + "s%" + anchoImporte + "s",
+                izquierda, unitario, importe);
+    }
+
+    /**
+     * El nombre que baja por el margen derecho del ticket, una letra por renglón.
+     *
+     * Solo el nombre de pila y sin acentos, por dos razones prácticas: la
+     * impresora térmica no dibuja de forma fiable lo que se sale de ASCII, y un
+     * "Ma. de los Angeles" completo se comería el ticket a razón de un renglón
+     * por letra. Devuelve vacío si no hay nombre, y entonces el ticket sale
+     * exactamente como antes salvo por las 4 columnas de aire a la derecha.
+     *
+     * Visible para pruebas.
+     */
+    static List<String> nombreVertical(String nombre) {
+        if (nombre == null || nombre.isBlank()) return List.of();
+        String pila = nombre.trim().split("\\s+")[0];
+        String limpio = java.text.Normalizer.normalize(pila, java.text.Normalizer.Form.NFD)
+                .replaceAll("[^A-Za-z0-9]", "")
+                .toUpperCase();
+        return limpio.chars().mapToObj(c -> String.valueOf((char) c)).toList();
+    }
+
+    /**
+     * Pega una línea de contenido con la letra que le toca del margen derecho.
+     * El contenido se recorta a 44 columnas para que la letra caiga siempre en la
+     * 48: un platillo de nombre largo empuja su propio texto, nunca la columna.
+     *
+     * Visible para pruebas.
+     */
+    static String conMargen(String contenido, String letra) {
+        if (contenido.length() > ANCHO_CONTENIDO) contenido = contenido.substring(0, ANCHO_CONTENIDO);
+        // Sin letra no vale la pena mandar 4 espacios por el cable a la impresora.
+        if (letra.isEmpty()) return contenido.stripTrailing();
+        return String.format("%-" + ANCHO_CONTENIDO + "s%" + ANCHO_COLUMNA_NOMBRE + "s", contenido, letra);
     }
 
     /** Dinero sin decimales cuando es cantidad exacta ($50); con centavos solo si los hay. */
@@ -385,15 +451,21 @@ public class ImpresoraService {
                 .setFontSize(Style.FontSize._2, Style.FontSize._2)
                 .setBold(true);
 
-        String rayita = "-".repeat(48);
+        // Las rayitas también se quedan en 44 para que la columna del nombre sea
+        // una franja limpia por la orilla y no la corte ningún separador.
+        String rayita = "-".repeat(ANCHO_CONTENIDO);
 
         // Cabecera: RESTFOOD + mesera y servicio en una sola línea
         escpos.writeLF(centroNegrita, "RESTFOOD");
         String servicio = "COMIDA".equalsIgnoreCase(ticket.servicio()) ? "Comida"
                 : "DESAYUNO".equalsIgnoreCase(ticket.servicio()) ? "Desayuno"
                 : ticket.servicio() != null ? ticket.servicio() : "";
-        String quien = ticket.nombreMesero() != null ? ticket.nombreMesero() : "";
-        String cabecera = (quien + (servicio.isEmpty() ? "" : " - " + servicio)).trim();
+        // Sin mesera la cabecera salía como "- Comida", con el guion colgando.
+        // Se destapó al dibujar el ticket con la vista previa el 2026-08-11.
+        String quien = ticket.nombreMesero() != null ? ticket.nombreMesero().trim() : "";
+        String cabecera = quien.isEmpty() ? servicio
+                : servicio.isEmpty() ? quien
+                : quien + " - " + servicio;
         if (!cabecera.isEmpty()) {
             escpos.writeLF(centro, cabecera);
         }
@@ -406,12 +478,28 @@ public class ImpresoraService {
         }
         escpos.writeLF(rayita);
 
-        // Platillos: cantidad y nombre + precio unitario + importe en la misma línea
-        for (DatosDetalleRespuesta p : ticket.platillos()) {
-            escpos.writeLF(normal, filaTicket3(
-                    p.cantidad() + "x " + p.nombre_producto(),
-                    dinero(p.precio_unitario()),
-                    dinero(p.subtotal())));
+        // Platillos: cantidad y nombre + precio unitario + importe en la misma
+        // línea, con el nombre de la mesera bajando por la orilla derecha.
+        //
+        // Si el nombre tiene más letras que platillos la columna sigue sola unos
+        // renglones más; si tiene menos, se acaba y ya. El bloque de arriba (la
+        // cabecera) y el de abajo (el TOTAL) no la llevan: el TOTAL va a doble
+        // tamaño desde el 2026-07-28 —24 columnas, no 48— porque las meseras
+        // confundían el 0 con el 8, y meterle una letra al margen obligaría a
+        // encogerlo otra vez. Ese renglón se queda como está.
+        List<String> letras = nombreVertical(ticket.nombreMesero());
+        int renglones = Math.max(ticket.platillos().size(), letras.size());
+        for (int i = 0; i < renglones; i++) {
+            String contenido = "";
+            if (i < ticket.platillos().size()) {
+                DatosDetalleRespuesta p = ticket.platillos().get(i);
+                contenido = filaTicket3(
+                        p.cantidad() + "x " + p.nombre_producto(),
+                        dinero(p.precio_unitario()),
+                        dinero(p.subtotal()),
+                        ANCHO_CONTENIDO);
+            }
+            escpos.writeLF(normal, conMargen(contenido, i < letras.size() ? letras.get(i) : ""));
         }
 
         escpos.writeLF(rayita);
