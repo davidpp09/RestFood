@@ -38,7 +38,7 @@ public class ProductosController {
 
     @PostMapping
     @Transactional
-    @PreAuthorize("hasRole('DEV')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<DatosRespuestaProducto> registrar(@RequestBody @Valid DatosRegistroProducto datos, UriComponentsBuilder uriComponentsBuilder) {
         Categoria categoria = categoriaRepository.findById(datos.id_categoria()).orElseThrow();
         // El nombre es único: si existe un producto con borrado suave se reutiliza ese registro
@@ -63,7 +63,7 @@ public class ProductosController {
 
     @PutMapping("/{id}")
     @Transactional
-    @PreAuthorize("hasRole('DEV')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<DatosRespuestaProducto> actualizar(@PathVariable Long id,
                                                               @RequestBody @Valid DatosActualizacionProducto datos) {
         Producto producto = repository.findById(id).orElseThrow();
@@ -76,7 +76,7 @@ public class ProductosController {
 
     @DeleteMapping("/{id}")
     @Transactional
-    @PreAuthorize("hasRole('DEV')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         Producto producto = repository.findById(id).orElseThrow();
         if (ordenDetalleRepository.existePorProducto(id)) {
@@ -164,7 +164,7 @@ public class ProductosController {
 
     @PatchMapping("/{id}/dia")
     @Transactional
-    @PreAuthorize("hasAnyRole('DEV', 'REPARTIDOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'REPARTIDOR')")
     public ResponseEntity<?> actualizarDia(@PathVariable Long id, @RequestBody DatosActualizacionDia datos) {
         Producto producto = repository.findById(id).orElseThrow();
         if (Boolean.TRUE.equals(datos.disponibilidad()) && !producto.getDisponibilidad()) {
@@ -186,7 +186,7 @@ public class ProductosController {
 
     @PutMapping("/desactivar-dia/{categoriaId}")
     @Transactional
-    @PreAuthorize("hasAnyRole('DEV', 'REPARTIDOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEV', 'REPARTIDOR')")
     public ResponseEntity<Void> desactivarDia(@PathVariable Long categoriaId) {
         repository.desactivarPorCategoria(categoriaId);
         return ResponseEntity.noContent().build();
