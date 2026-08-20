@@ -85,90 +85,79 @@ class ImpresoraServiceTest {
         assertEquals("$123456789012345678901234", fila);
     }
 
-    // ─── El nombre de la mesera bajando por el margen derecho (2026-08-11) ────
+    // ─── El nombre de quien atendió, ahora en el pie (2026-08-20) ────────────
 
     @Test
-    @DisplayName("el nombre se parte en letras, una por renglon")
-    void nombreLetraPorRenglon() {
-        assertEquals(List.of("V", "A", "L", "E", "R", "I", "A"),
-                ImpresoraService.nombreVertical("Valeria"));
-    }
-
-    @Test
-    @DisplayName("solo el nombre de pila y sin acentos: la termica no dibuja lo que no es ASCII")
-    void nombreSoloPilaYSinAcentos() {
-        assertEquals(List.of("J", "O", "S", "E"), ImpresoraService.nombreVertical("José Pérez Loza"));
-        assertEquals(List.of(), ImpresoraService.nombreVertical(null));
-        assertEquals(List.of(), ImpresoraService.nombreVertical("   "));
-    }
-
-    @Test
-    @DisplayName("la letra cae siempre en la columna 48, aunque el platillo tenga nombre largo")
-    void laLetraNoSeMueve() {
-        String corto = ImpresoraService.conMargen("2x Agua", "V");
-        String largo = ImpresoraService.conMargen("1x " + "Bistec".repeat(20), "V");
-
-        assertEquals(48, corto.length());
-        assertEquals(48, largo.length());
-        assertTrue(corto.endsWith("V"), "la letra debe quedar pegada a la orilla derecha");
-        assertTrue(largo.endsWith("V"), "un nombre largo debe recortarse a si mismo, no empujar la columna");
-    }
-
-    @Test
-    @DisplayName("sin letra no se mandan espacios de relleno por el cable")
-    void sinLetraNoHayRelleno() {
-        assertEquals("2x Agua", ImpresoraService.conMargen("2x Agua", ""));
-    }
-
-    @Test
-    @DisplayName("MARELI baja por la orilla del ticket aunque solo haya un platillo")
-    void elNombreSigueCuandoSeAcabanLosPlatillos() throws Exception {
-        // El ticket de prueba trae UN platillo y la mesera se llama MARELI: la
-        // columna tiene que continuar 5 renglones despues del ultimo platillo.
+    @DisplayName("el pie del ticket trae el nombre de la mesera en vez de la despedida")
+    void elPieTraeElNombre() throws Exception {
         String texto = new String(imprimir(ticketCon(new BigDecimal("120"))), StandardCharsets.UTF_8);
 
-        assertEquals(List.of("M", "A", "R", "E", "L", "I"), margenDerechoDe(texto),
-                "el margen derecho debe leerse MARELI de arriba abajo");
+        assertTrue(texto.contains("MARELI"), "el nombre de quien atendio debe salir en el ticket");
+        assertFalse(texto.contains("Vuelva pronto"), "la despedida cede su renglon al nombre");
+        // El nombre va al final: despues de el ya no hay mas texto del ticket.
+        assertTrue(texto.lastIndexOf("MARELI") > texto.lastIndexOf("TOTAL"),
+                "el nombre va debajo del total, no solo en la cabecera");
     }
 
     @Test
-    @DisplayName("el nombre del platillo no pierde columnas por la del margen")
-    void elPlatilloConservaSusColumnas() throws Exception {
-        // Los platillos de aqui tienen nombres larguisimos (hasta 62 caracteres),
-        // asi que cada columna que pierden se nota. Ceder 4 al nombre de la mesera
-        // sin tocar nada mas habria cortado 30 platillos mas de los que ya se
-        // cortaban; el espacio salio de las columnas de dinero, que sobraban.
+    @DisplayName("sin mesera el pie se queda con la despedida de siempre")
+    void sinMeseraQuedaLaDespedida() throws Exception {
+        var ticket = new DatosRespuestaCuenta(
+                1L, 42, "5", "LOZA",
+                LocalDateTime.now(), LocalDateTime.now(),
+                List.of(new DatosDetalleRespuesta(1L, 1, new BigDecimal("30"), new BigDecimal("30"),
+                        null, 1L, 1L, "Cafe")),
+                new BigDecimal("30"), "CERRADA", null, "COMIDA");
+
+        String texto = new String(imprimir(ticket), StandardCharsets.UTF_8);
+
+        assertTrue(texto.contains("Vuelva pronto"), "el ticket no puede acabar en seco");
+    }
+
+    @Test
+    @DisplayName("el nombre ya no baja por la orilla derecha")
+    void elMargenDerechoQuedaLimpio() throws Exception {
+        // Hasta el 2026-08-19 el margen se leia MARELI de arriba abajo. Si esta
+        // lista vuelve a traer letras, es que regreso la columna vertical.
         String texto = new String(imprimir(ticketCon(new BigDecimal("120"))), StandardCharsets.UTF_8);
 
-        assertTrue(texto.contains("1x Bistec a la Tampiquena"),
-                "el nombre del platillo debe caber entero, como cabia antes del margen");
+        assertEquals(List.of(), margenDerechoDe(texto), "el margen derecho debe estar vacio");
     }
 
     @Test
-    @DisplayName("un importe descomunal se come el nombre, nunca desborda la fila")
-    void importeGrandeNoDesbordaLaFila() {
-        String fila = ImpresoraService.conMargen(
-                ImpresoraService.filaTicket3("1x Camarones al mojo de ajo con arroz",
-                        "$1234.56", "$98765.43", 44), "A");
+    @DisplayName("el platillo recupera las columnas que financiaban el margen")
+    void elPlatilloRecuperaSusColumnas() {
+        // 48 columnas menos las dos de dinero (6 + 6) = 36 para el nombre, cuatro
+        // mas de las 32 que tenia con el margen puesto.
+        String fila = ImpresoraService.filaTicket3("1x " + "A".repeat(60), "$260", "$260", 48);
 
-        assertEquals(48, fila.length(), "la fila no puede pasarse del papel: se partiria en dos renglones");
-        assertTrue(fila.endsWith("A"), "la letra del margen se queda en su columna");
-        assertTrue(fila.contains("$98765.43"), "el importe es el dato que no se puede recortar");
+        assertEquals(48, fila.length(), "la fila no puede pasarse del papel");
+        assertEquals("1x " + "A".repeat(33), fila.substring(0, 36),
+                "el nombre del platillo dispone de 36 columnas, no de 32");
+        assertTrue(fila.endsWith("$260"));
+
+        // Un nombre de 36 caracteres justos cabia cortado con el margen puesto y
+        // ahora entra entero.
+        String cabe = ImpresoraService.filaTicket3("1x Camarones al mojo de ajo con arro",
+                "$260", "$260", 48);
+        assertTrue(cabe.startsWith("1x Camarones al mojo de ajo con arro"));
     }
 
     @Test
-    @DisplayName("el TOTAL a doble tamano se queda intacto: no lo encoge la columna del nombre")
+    @DisplayName("el TOTAL a doble tamano se queda intacto")
     void elTotalNoSeEncoge() throws Exception {
         String texto = new String(imprimir(ticketCon(new BigDecimal("808"))), StandardCharsets.UTF_8);
 
         assertTrue(texto.contains(ImpresoraService.filaAncho("TOTAL", "$808", 24)),
-                "el total debe seguir armado a 24 columnas de fuente doble, sin letra al margen");
+                "el total debe seguir armado a 24 columnas de fuente doble");
     }
 
     // ─── Ayudas ──────────────────────────────────────────────────────────────
 
     /**
      * Las letras que quedaron pegadas a la orilla derecha, de arriba abajo.
+     * Desde el 2026-08-20 debe salir vacia: es el centinela de que la columna
+     * vertical no volvio.
      *
      * Cada renglon viene precedido por los bytes ESC/POS que fijan su estilo, asi
      * que no se puede medir la linea entera: se toman las ultimas 48 columnas,

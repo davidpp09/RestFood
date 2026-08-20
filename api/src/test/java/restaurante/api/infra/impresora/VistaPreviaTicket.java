@@ -32,15 +32,15 @@ class VistaPreviaTicket {
                 platillo(2, "Pozole", "95", "190"),
                 platillo(1, "Agua de jamaica", "25", "25")), "215");
 
-        // Nombre más largo que la lista de platillos: la columna sigue sola.
+        // Nombre largo: en el pie cabe entero, no como cuando bajaba por el margen.
         imprimirEnPantalla("Guadalupe", List.of(
                 platillo(1, "Bistec a la Tampiquena", "120", "120")), "120");
 
-        // Un nombre de platillo que no cabe: debe recortarse él, no empujar la letra.
+        // Un nombre de platillo que no cabe: se recorta él, sin descuadrar el dinero.
         imprimirEnPantalla("Ana", List.of(
                 platillo(1, "Camarones al mojo de ajo con arroz y ensalada", "260", "260")), "260");
 
-        // Sin mesera: el ticket sale como siempre, sin columna.
+        // Sin mesera: el pie se queda con la despedida de siempre.
         imprimirEnPantalla(null, List.of(platillo(1, "Cafe", "30", "30")), "30");
     }
 
