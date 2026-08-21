@@ -170,7 +170,7 @@ public class ProductosController {
         if (Boolean.TRUE.equals(datos.disponibilidad()) && !producto.getDisponibilidad()) {
             Categoria categoria = producto.getCategoria();
             // El tope vive en la base (columna max_activos), no clavado aquí: el menú
-            // del día admite 5 porque su recuadro en el PDF tiene 5 renglones.
+            // del día admite 6 porque su recuadro en el PDF tiene 6 renglones.
             int tope = categoria.getMaxActivos() != null
                     ? categoria.getMaxActivos()
                     : Categoria.TOPE_POR_DEFECTO;

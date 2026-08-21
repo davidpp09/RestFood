@@ -38,14 +38,20 @@ class MenuDiaServiceTest {
         return new Producto(datos, null);
     }
 
-    /** Los 5 que estaban activos en producción el 28 de julio de 2026. */
-    private List<Producto> cincoPlatillos() {
+    /**
+     * Un menú lleno: 6 platillos desde el 2026-08-21. Los 5 primeros son los que
+     * estaban activos en producción el 28 de julio de 2026; el 6º se agregó al
+     * ampliar el recuadro, y es corto a propósito para que el test no dependa de
+     * que la letra se encoja.
+     */
+    private List<Producto> menuLleno() {
         return List.of(
                 platillo("Espinacas a la crema con queso doble crema", "90"),
                 platillo("Tortitas de pollo en salsa roja", "100"),
                 platillo("Estofado de tocino, zanahoria y cebollitas", "110"),
                 platillo("Costilla de cerdo en salsa de mango habanero", "115"),
-                platillo("Pechuga rellena en crema de almendra", "115"));
+                platillo("Pechuga rellena en crema de almendra", "115"),
+                platillo("Albondigas en chipotle", "105"));
     }
 
     private List<Renglon> renglonesDePagina(byte[] pdf, int pagina) throws Exception {
@@ -68,10 +74,10 @@ class MenuDiaServiceTest {
         return renglones;
     }
 
-    // 🧪 TEST 1: los 5 platillos salen con su precio, en mayúsculas y en las dos copias
+    // 🧪 TEST 1: los 6 platillos salen con su precio, en mayúsculas y en las dos copias
     @Test
-    void generar_EscribeLosCincoPlatillosEnLasDosCopiasDelDisenio() throws Exception {
-        byte[] pdf = servicio.generar(cincoPlatillos());
+    void generar_EscribeLosSeisPlatillosEnLasDosCopiasDelDisenio() throws Exception {
+        byte[] pdf = servicio.generar(menuLleno());
 
         List<Renglon> renglones = renglonesDePagina(pdf, 2);
 
@@ -81,7 +87,8 @@ class MenuDiaServiceTest {
                 new Esperado("TORTITAS DE POLLO EN SALSA ROJA", "$100"),
                 new Esperado("ESTOFADO DE TOCINO, ZANAHORIA Y CEBOLLITAS", "$110"),
                 new Esperado("COSTILLA DE CERDO EN SALSA DE MANGO HABANERO", "$115"),
-                new Esperado("PECHUGA RELLENA EN CREMA DE ALMENDRA", "$115"));
+                new Esperado("PECHUGA RELLENA EN CREMA DE ALMENDRA", "$115"),
+                new Esperado("ALBONDIGAS EN CHIPOTLE", "$105"));
 
         for (Esperado esperado : esperados) {
             long veces = renglones.stream()
@@ -94,25 +101,29 @@ class MenuDiaServiceTest {
         }
     }
 
-    // 🧪 TEST 2: los 5 renglones caen donde deben, repartidos por todo el recuadro.
+    // 🧪 TEST 2: los 6 renglones caen donde deben, repartidos por todo el recuadro.
     // Si esto falla, el texto sale desalineado, encima de otro renglón, o se mete
     // en el bloque de platillos fijos de abajo.
     @Test
     void generar_RespetaLasCoordenadasDeLaPlantilla() throws Exception {
-        byte[] pdf = servicio.generar(cincoPlatillos());
+        byte[] pdf = servicio.generar(menuLleno());
         List<Renglon> renglones = renglonesDePagina(pdf, 2);
 
-        // Copia izquierda y copia derecha. La interlínea pasó de 15.686 a 13.774
-        // el 2026-08-04: la plantilla nueva trae el bloque de fijos 9.12 pt más
-        // arriba, así que el recuadro del día se quedó más chico.
+        // Copia izquierda y copia derecha. La interlínea pasó de 13.774 a ~11.3 el
+        // 2026-08-21, al meter un 6º renglón en el mismo recuadro.
+        //
+        // Y hay UNA POR COPIA, no una común: los platillos fijos van a la misma
+        // altura en las dos copias, pero la derecha arranca 1.58 pt más abajo, así
+        // que su recuadro es más corto y su paso más apretado. Con 5 renglones
+        // sobraba hueco y el mismo paso servía para las dos; con 6 ya no.
         float[] xEsperada = {19.86f, 317.63f};
         float[] yPrimera = {91.89f, 93.47f};
-        float interlinea = 13.774f;
+        float[] interlinea = {11.478f, 11.215f};
 
         for (int copia = 0; copia < 2; copia++) {
             for (int renglon = 0; renglon < MenuDiaService.RENGLONES; renglon++) {
                 float x = xEsperada[copia];
-                float y = yPrimera[copia] + renglon * interlinea;
+                float y = yPrimera[copia] + renglon * interlinea[copia];
 
                 boolean hayTextoNuevoAhi = renglones.stream().anyMatch(r ->
                         Math.abs(r.x() - x) < 0.5f
@@ -134,13 +145,17 @@ class MenuDiaServiceTest {
     // coordenadas de entonces el 5º platillo del día caía justo encima del
     // POZOLE en la copia derecha. El menú salía ilegible.
     //
+    // Vigila más que nunca desde que son 6 renglones (2026-08-21): la holgura que
+    // queda es de ~11.2 pt, contra los 13.8 de antes. Si la plantilla vuelve a
+    // re-acomodarse en Canva, esto salta antes que nada.
+    //
     // Ninguno de los otros tests lo cazó: el TEST 2 comprueba que los renglones
     // del día estén donde se les dijo, y ahí estaban — el que se había movido
     // era el bloque de abajo. Por eso aquí no se miran coordenadas fijas, sino
     // la DISTANCIA entre lo que escribimos y lo que ya traía la plantilla.
     @Test
     void generar_DejaAireEntreElUltimoDelDiaYLosPlatillosFijos() throws Exception {
-        byte[] pdf = servicio.generar(cincoPlatillos());
+        byte[] pdf = servicio.generar(menuLleno());
         List<Renglon> renglones = renglonesDePagina(pdf, 2);
 
         // A 9 pt, dos renglones a menos de 9 pt de distancia ya se tocan.
@@ -149,7 +164,7 @@ class MenuDiaServiceTest {
         // El último platillo del día se busca por su NOMBRE y no por su x: los
         // fijos arrancan en x=19.97, a 0.11 pt de la copia izquierda (x=19.86),
         // así que por posición se colarían entre los del día.
-        String ultimoNombre = cincoPlatillos().get(MenuDiaService.RENGLONES - 1)
+        String ultimoNombre = menuLleno().get(MenuDiaService.RENGLONES - 1)
                 .getNombre().toUpperCase();
 
         for (float x : new float[]{19.86f, 317.63f}) {
@@ -185,7 +200,7 @@ class MenuDiaServiceTest {
     // 🧪 TEST 3: no se rompió nada más del menú
     @Test
     void generar_NoTocaLosRenglonesFijosNiLaPrimeraPagina() throws Exception {
-        byte[] pdf = servicio.generar(cincoPlatillos());
+        byte[] pdf = servicio.generar(menuLleno());
 
         try (PDDocument documento = Loader.loadPDF(pdf)) {
             assertEquals(2, documento.getNumberOfPages(), "El menú debe seguir teniendo 2 páginas");
@@ -205,9 +220,9 @@ class MenuDiaServiceTest {
                 "La página 1 (desayunos) no debe tocarse");
     }
 
-    // 🧪 TEST 4: con menos de 5 activos el renglón queda vacío, no con el platillo de ayer
+    // 🧪 TEST 4: con menos de 6 activos el renglón queda vacío, no con el platillo de ayer
     @Test
-    void generar_ConMenosDeCincoDejaLosRenglonesSobrantesEnBlanco() throws Exception {
+    void generar_ConMenosDeSeisDejaLosRenglonesSobrantesEnBlanco() throws Exception {
         var dos = List.of(
                 platillo("Pollo en salsa ranchera", "100"),
                 platillo("Bistec en salsa verde con nopales", "105"));
@@ -215,8 +230,8 @@ class MenuDiaServiceTest {
         byte[] pdf = servicio.generar(dos);
         List<Renglon> renglones = renglonesDePagina(pdf, 2);
 
-        // Los renglones 3, 4 y 5 de la copia izquierda deben quedar sin nada escrito.
-        float[] yVacios = {119.44f, 133.21f, 146.99f};
+        // Los renglones 3 a 6 de la copia izquierda deben quedar sin nada escrito.
+        float[] yVacios = {114.85f, 126.32f, 137.80f, 149.28f};
         for (float y : yVacios) {
             boolean hayAlgo = renglones.stream().anyMatch(r ->
                     Math.abs(r.x() - 19.86f) < 1f
@@ -229,7 +244,7 @@ class MenuDiaServiceTest {
 
     // 🧪 TEST 5: en el recuadro del día no queda nada más que el menú de hoy.
     //
-    // Desde la plantilla del 2026-08-01, Canva ya NO exporta los 5 renglones de
+    // Desde la plantilla del 2026-08-01, Canva ya NO exporta los renglones de
     // relleno: el recuadro viene vacío y el servicio solo escribe. Antes venían
     // con platillos de ejemplo y había que borrarlos, y este test comprobaba ese
     // borrado. Como esa comprobación se quedaría sin nada que vigilar, aquí se
@@ -241,12 +256,12 @@ class MenuDiaServiceTest {
     // copiarlo salen los dos menús entreverados. Eso es lo que se caza aquí.
     @Test
     void generar_DejaSoloElMenuDeHoyEnElRecuadro() throws Exception {
-        byte[] pdf = servicio.generar(cincoPlatillos());
+        byte[] pdf = servicio.generar(menuLleno());
 
         List<String> renglones = renglonesDePagina(pdf, 2).stream().map(Renglon::texto).toList();
         String pagina2 = String.join(" | ", renglones);
 
-        for (Producto platillo : cincoPlatillos()) {
+        for (Producto platillo : menuLleno()) {
             String enMayusculas = platillo.getNombre().toUpperCase();
             long veces = renglones.stream().filter(r -> r.contains(enMayusculas)).count();
 
@@ -273,7 +288,7 @@ class MenuDiaServiceTest {
     // vacío — y como no da error, nadie se entera hasta que alguien lo mira.
     @Test
     void generarImagen_DevuelveUnPngDeLaPaginaDelMenu() throws Exception {
-        byte[] png = servicio.generarImagen(cincoPlatillos());
+        byte[] png = servicio.generarImagen(menuLleno());
 
         // Firma de un PNG: 0x89 'P' 'N' 'G'. Comprueba que salió una imagen de
         // verdad y no, por ejemplo, el PDF sin convertir.

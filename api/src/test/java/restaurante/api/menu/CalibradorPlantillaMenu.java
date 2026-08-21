@@ -54,7 +54,8 @@ class CalibradorPlantillaMenu {
                     platilloDePrueba("Tortitas de pollo en salsa roja", "100"),
                     platilloDePrueba("Estofado de tocino, zanahoria y cebollitas", "110"),
                     platilloDePrueba("Costilla de cerdo en salsa de mango habanero", "115"),
-                    platilloDePrueba("Pechuga rellena en crema de almendra", "115"));
+                    platilloDePrueba("Pechuga rellena en crema de almendra", "115"),
+                    platilloDePrueba("Albondigas en chipotle", "105"));
             generado = servicio.generar(platillos);
         }
 
@@ -96,7 +97,7 @@ class CalibradorPlantillaMenu {
             // El primer renglón que rota está en y=758.19 del espacio de usuario
             // (850.08 - 91.89). Si los Tm traen esa Y directamente, se puede filtrar por
             // coordenada sin pelear con matrices de transformación.
-            System.out.println("--- Tm con Y entre 700 y 760 (los 5 renglones que rotan) ---");
+            System.out.println("--- Tm con Y entre 700 y 760 (los 6 renglones que rotan) ---");
             float yTm = -1;
             for (int i = 0; i < tokens.size(); i++) {
                 if (!(tokens.get(i) instanceof org.apache.pdfbox.contentstream.operator.Operator op)) continue;
@@ -152,13 +153,15 @@ class CalibradorPlantillaMenu {
     void generarMuestraEnDisco() throws Exception {
         var servicio = new restaurante.api.menu.MenuDiaService();
 
-        // Los 5 que estaban activos en producción el 28 de julio de 2026.
+        // Los 5 que estaban activos en producción el 28 de julio de 2026, más un
+        // 6º: desde el 2026-08-21 el recuadro admite seis.
         var platillos = List.of(
                 platilloDePrueba("Espinacas a la crema con queso doble crema", "90"),
                 platilloDePrueba("Tortitas de pollo en salsa roja", "100"),
                 platilloDePrueba("Estofado de tocino, zanahoria y cebollitas", "110"),
                 platilloDePrueba("Costilla de cerdo en salsa de mango habanero", "115"),
-                platilloDePrueba("Pechuga rellena en crema de almendra", "115"));
+                platilloDePrueba("Pechuga rellena en crema de almendra", "115"),
+                platilloDePrueba("Albondigas en chipotle", "105"));
 
         byte[] pdf = servicio.generar(platillos);
 
@@ -171,7 +174,7 @@ class CalibradorPlantillaMenu {
         java.nio.file.Files.write(destino, pdf);
 
         System.out.println("\n>>> Muestra generada en: " + destino);
-        System.out.println(">>> Abrela para revisar que los 5 renglones se vean bien.");
+        System.out.println(">>> Abrela para revisar que los 6 renglones se vean bien.");
     }
 
     private restaurante.api.producto.Producto platilloDePrueba(String nombre, String precio) {
