@@ -31,7 +31,7 @@ import java.util.Locale;
  * Genera el PDF del menú del día a partir de la plantilla de Canva.
  *
  * Funciona en dos pasos:
- *   1. BORRA los 5 renglones que rotan, quitando del content stream las órdenes
+ *   1. BORRA los 6 renglones que rotan, quitando del content stream las órdenes
  *      de dibujar esos caracteres.
  *   2. Escribe encima los platillos que hoy están activos en el sistema.
  *
@@ -62,12 +62,18 @@ public class MenuDiaService {
     /**
      * Renglones que rotan. Debajo van 7 platillos fijos que no se tocan.
      *
+     * Pasó de 5 a 6 el 2026-08-21, a petición de David. El recuadro del PDF no
+     * creció: el sexto renglón sale de apretar la interlínea (ver {@link #Y_RENGLON}),
+     * así que el día va ahora más junto que antes. El tope de platillos que se
+     * pueden activar vive en la base (categorias.max_activos) y lo sube V7; los dos
+     * números tienen que ir a la par o sobran renglones o sobran platillos.
+     *
      * Desde la plantilla del 2026-08-01 el recuadro del día viene VACÍO: Canva ya
      * no exporta renglones de relleno, así que aquí no hay nada que borrar y solo
      * se escribe. El borrado se conserva igualmente —cuesta poco y la plantilla
      * puede volver a traer texto— pero ya no es lo que sostiene el resultado.
      */
-    public static final int RENGLONES = 5;
+    public static final int RENGLONES = 6;
 
     /** Resolución de la vista previa en PNG: legible en una tablet sin pesar de más. */
     private static final int DPI_VISTA_PREVIA = 150;
@@ -79,33 +85,32 @@ public class MenuDiaService {
     private static final float ANCHO_COPIA = 270f;
 
     /**
-     * Línea base de los 5 renglones que rotan, en coordenadas del PDF (desde
+     * Línea base de los 6 renglones que rotan, en coordenadas del PDF (desde
      * abajo). Primera fila: copia izquierda. Segunda: copia derecha.
      *
-     * Recalculadas el 2026-08-04, paso de 15.69 a 13.77 pt. Al corregir en Canva
-     * los precios del filete y la mojarra, el bloque de los 7 fijos se re-acomodó
-     * solo: creció HACIA ARRIBA 9.12 pt (su interlínea pasó de 13.51 a 15.01) y
-     * se comió el hueco por abajo del recuadro del día. Con el paso anterior el
-     * 5º platillo del día caía ENCIMA del pozole en la copia derecha —salía
-     * ilegible, no descolocado—, así que los 5 renglones vuelven a apretarse.
+     * Recalculadas el 2026-08-21 al pasar de 5 renglones a 6. El recuadro es el
+     * mismo de siempre: va del primer renglón al primer platillo fijo (el POZOLE,
+     * en y=689.32). Lo único que cambia es en cuántos pedazos se parte ese hueco.
      *
-     * El paso sale igual que antes: dividir en 5 la distancia del primer renglón
-     * (758.19) al primer fijo, que ahora está en 689.32 y no en 679.76. Así la
-     * separación con el bloque de abajo queda igual que la de dentro del bloque.
+     * El paso sale de dividir esa distancia entre 6, y se calcula POR COPIA, que
+     * es lo nuevo. Antes las dos usaban el mismo paso (13.774) porque el desfase
+     * de 1.58 pt de la copia derecha sobraba de largo. Con 6 renglones ya no
+     * sobra: los fijos van a la MISMA altura en las dos copias, así que la copia
+     * derecha —que arranca 1.58 pt más abajo— tiene ese hueco más chico y, con un
+     * paso común, su último platillo acababa a 9.9 pt del pozole, al filo de
+     * tocarlo. Con paso propio las dos quedan repartidas parejo:
      *
-     * Ojo: ahora el día va MÁS APRETADO que los fijos (13.77 contra 15.01), al
-     * revés que el 2026-08-01. No es una decisión de diseño, es lo que dejó la
-     * plantilla; la negrita sigue siendo lo que hace destacar al día. Si se
-     * quiere recuperar el aire, hay que arreglar la interlínea en Canva y volver
-     * a calibrar.
+     *   izquierda: (758.19 - 689.32) / 6 = 11.478
+     *   derecha:   (756.61 - 689.32) / 6 = 11.215
      *
-     * La copia derecha va 1.58 pt más abajo, como en la plantilla original. Los
-     * fijos NO llevan ese desfase —van a la misma altura en las dos copias—, así
-     * que la derecha es la que menos holgura tiene: es la que hay que mirar.
+     * Ojo con la holgura: el texto va a 9 pt y ahora los renglones del día están
+     * a ~11.3 pt unos de otros, contra los 15.01 de los fijos. Cabe y se lee, pero
+     * es lo más apretado que ha estado. Si hiciera falta un séptimo renglón, ya no
+     * alcanza con recalcular aquí: hay que agrandar el recuadro en Canva.
      */
     private static final float[][] Y_RENGLON = {
-            {758.19f, 744.42f, 730.64f, 716.87f, 703.09f},
-            {756.61f, 742.84f, 729.06f, 715.29f, 701.51f}
+            {758.19f, 746.71f, 735.23f, 723.76f, 712.28f, 700.80f},
+            {756.61f, 745.40f, 734.18f, 722.97f, 711.75f, 700.54f}
     };
 
     /** Margen al comparar coordenadas: los acentos y las comas se salen un poco. */
@@ -181,7 +186,7 @@ public class MenuDiaService {
 
     /**
      * Recorre el content stream y descarta los operadores que dibujan texto dentro
-     * de los 5 renglones que rotan. Los operadores de posición (Tm, Td...) se
+     * de los 6 renglones que rotan. Los operadores de posición (Tm, Td...) se
      * dejan intactos a propósito: mover el cursor no pinta nada, y quitarlos sí
      * podría descolocar lo que viene después.
      */
@@ -273,7 +278,7 @@ public class MenuDiaService {
 
             for (int copia = 0; copia < X_COPIA.length; copia++) {
                 for (int renglon = 0; renglon < RENGLONES; renglon++) {
-                    // Menos de 5 platillos activos deja el renglón vacío, que es lo
+                    // Menos de 6 platillos activos deja el renglón vacío, que es lo
                     // correcto: mejor en blanco que anunciando el platillo de ayer.
                     if (renglon >= platillos.size()) continue;
 
